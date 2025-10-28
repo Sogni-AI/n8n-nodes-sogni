@@ -15,7 +15,7 @@ export class Sogni implements INodeType {
     name: 'sogni',
     icon: 'file:sogni.svg',
     group: ['transform'],
-    version: 1.1,
+    version: 1,
     subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
     description: 'Generate AI images using Sogni AI Supernet with ControlNet support',
     defaults: {
