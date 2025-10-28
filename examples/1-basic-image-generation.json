@@ -1,0 +1,63 @@
+{
+  "name": "Basic Image Generation with Sogni",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "generate",
+        "modelId": "flux1-schnell-fp8",
+        "positivePrompt": "A beautiful sunset over mountains, vibrant colors, photorealistic",
+        "additionalFields": {
+          "negativePrompt": "blurry, low quality, distorted",
+          "steps": 4,
+          "guidance": 3.5,
+          "numberOfImages": 1,
+          "network": "fast",
+          "tokenType": "spark"
+        }
+      },
+      "id": "sogni-generate",
+      "name": "Generate Image",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Generate Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-26T00:00:00.000Z",
+  "versionId": "1"
+}
+

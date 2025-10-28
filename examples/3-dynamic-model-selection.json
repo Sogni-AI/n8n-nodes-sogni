@@ -1,0 +1,112 @@
+{
+  "name": "Dynamic Model Selection - Choose Best Available Model",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "model",
+        "operation": "getAll"
+      },
+      "id": "get-models",
+      "name": "Get All Models",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Find the model with the most workers\nconst models = $input.all();\nconst sortedModels = models.sort((a, b) => {\n  return (b.json.workerCount || 0) - (a.json.workerCount || 0);\n});\n\nconst bestModel = sortedModels[0].json;\n\nreturn {\n  json: {\n    modelId: bestModel.id,\n    modelName: bestModel.name,\n    workerCount: bestModel.workerCount,\n    recommendedSteps: bestModel.recommendedSettings?.steps || 20,\n    recommendedGuidance: bestModel.recommendedSettings?.guidance || 7.5\n  }\n};"
+      },
+      "id": "select-best-model",
+      "name": "Select Best Model",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "generate",
+        "modelId": "={{ $json.modelId }}",
+        "positivePrompt": "A majestic dragon flying over a medieval castle, epic fantasy art, detailed",
+        "additionalFields": {
+          "negativePrompt": "blurry, low quality, cartoon",
+          "steps": "={{ $json.recommendedSteps }}",
+          "guidance": "={{ $json.recommendedGuidance }}",
+          "numberOfImages": 1,
+          "network": "relaxed",
+          "tokenType": "spark"
+        }
+      },
+      "id": "generate-with-best-model",
+      "name": "Generate with Best Model",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Get All Models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Models": {
+      "main": [
+        [
+          {
+            "node": "Select Best Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Best Model": {
+      "main": [
+        [
+          {
+            "node": "Generate with Best Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-26T00:00:00.000Z",
+  "versionId": "1"
+}
+

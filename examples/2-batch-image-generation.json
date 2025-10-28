@@ -1,0 +1,136 @@
+{
+  "name": "Batch Image Generation with Multiple Prompts",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompts",
+              "value": "=[\n  \"A cute cat wearing sunglasses\",\n  \"A futuristic cityscape at night\",\n  \"A serene forest with morning mist\",\n  \"An abstract geometric pattern in blue and gold\"\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-prompts",
+      "name": "Set Prompts",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "prompts",
+        "options": {}
+      },
+      "id": "split-prompts",
+      "name": "Split Into Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "generate",
+        "modelId": "flux1-schnell-fp8",
+        "positivePrompt": "={{ $json.prompts }}",
+        "additionalFields": {
+          "negativePrompt": "blurry, low quality, distorted, ugly",
+          "steps": 4,
+          "guidance": 3.5,
+          "numberOfImages": 1,
+          "network": "relaxed",
+          "tokenType": "spark",
+          "seed": "={{ Math.floor(Math.random() * 1000000) }}"
+        }
+      },
+      "id": "sogni-generate",
+      "name": "Generate Images",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Set Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Prompts": {
+      "main": [
+        [
+          {
+            "node": "Split Into Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Items": {
+      "main": [
+        [
+          {
+            "node": "Generate Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Images": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-26T00:00:00.000Z",
+  "versionId": "1"
+}
+

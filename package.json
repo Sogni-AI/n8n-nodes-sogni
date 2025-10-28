@@ -1,0 +1,64 @@
+{
+  "name": "n8n-nodes-sogni",
+  "version": "1.1.0",
+  "description": "n8n community node for Sogni AI image generation",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "sogni",
+    "ai",
+    "image-generation",
+    "stable-diffusion",
+    "flux",
+    "controlnet",
+    "workflow",
+    "automation"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Sogni-AI/n8n-nodes-sogni#readme",
+  "author": {
+    "name": "Sogni AI",
+    "email": "support@sogni.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sogni-AI/n8n-nodes-sogni.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sogni-AI/n8n-nodes-sogni/issues"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && npm run copy:assets",
+    "copy:assets": "cp -r icons dist/ && cp -r nodes/**/*.json dist/nodes/ 2>/dev/null || true",
+    "dev": "npm run build && npm run watch",
+    "watch": "tsc --watch",
+    "lint": "eslint nodes credentials",
+    "lintfix": "eslint nodes credentials --fix",
+    "prepublishOnly": "npm run build && npm run lint"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/SogniApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Sogni/Sogni.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "n8n-workflow": "^1.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@sogni-ai/sogni-client-wrapper": "^1.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

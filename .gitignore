@@ -1,0 +1,196 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.yarn/*
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env*.local
+*.env
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+log.txt
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.coverage
+*.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+*.pid
+*.seed
+*.pid.lock
+
+# Security - Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+*.der
+*.p7b
+*.p7c
+*.jks
+*.keystore
+private.key
+certificate.crt
+
+# Security - SSH keys
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pub
+known_hosts
+
+# Security - Cloud credentials
+.aws/
+.gcloud/
+.azure/
+credentials.json
+service-account*.json
+*-credentials.json
+*.serviceaccount.json
+
+# Security - API keys and tokens
+api_key*
+apikey*
+api-key*
+*.token
+token.txt
+access_token*
+refresh_token*
+bearer_token*
+
+# Security - Authentication files
+auth.json
+.netrc
+.authinfo
+.pgpass
+
+# Security - Database files
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+
+# Security - GPG
+.gnupg/
+*.gpg
+*.asc
+secring.*
+
+# Backup files
+*.backup
+*.bak
+*.old
+*.orig
+*.save
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# n8n specific
+.n8n/
+*.n8n
+
+# Claude-specific
+.claude/
+
+# Project specific - test outputs
+test-results/
+test-output/
+*.test.js
+*.spec.js
+
+# Lock files (keep package-lock.json)
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# Local development
+local/
+.local/
+scratch/
+
+# Documentation build
+docs/_build/
+docs/site/
+
+# Python (if any scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# Misc
+.eslintcache
+.npm
+.node_repl_history
+.yarn-integrity

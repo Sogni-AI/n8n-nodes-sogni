@@ -1,0 +1,202 @@
+{
+  "name": "Scheduled Daily Image Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every Day at 9 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "date",
+              "value": "={{ $now.format('YYYY-MM-DD') }}"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ \"Daily inspiration: \" + [\"a peaceful zen garden\", \"a vibrant sunset\", \"a cozy coffee shop\", \"a starry night sky\", \"a blooming flower garden\"][Math.floor(Math.random() * 5)] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-data",
+      "name": "Prepare Daily Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "account",
+        "operation": "getBalance"
+      },
+      "id": "check-balance",
+      "name": "Check Token Balance",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.spark }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "check-if-tokens",
+      "name": "Has Tokens?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "generate",
+        "modelId": "flux1-schnell-fp8",
+        "positivePrompt": "={{ $('Prepare Daily Data').item.json.prompt }}, beautiful, high quality, detailed",
+        "additionalFields": {
+          "negativePrompt": "blurry, low quality, ugly",
+          "steps": 4,
+          "guidance": 3.5,
+          "numberOfImages": 1,
+          "network": "relaxed",
+          "tokenType": "spark"
+        }
+      },
+      "id": "generate-daily-image",
+      "name": "Generate Daily Image",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Daily Image Generated\n\n**Date**: {{ $('Prepare Daily Data').item.json.date }}\n\n**Prompt**: {{ $('Prepare Daily Data').item.json.prompt }}\n\n**Image URL**: {{ $json.imageUrls[0] }}\n\n**Project ID**: {{ $json.projectId }}",
+        "options": {}
+      },
+      "id": "format-notification",
+      "name": "Format Notification",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "content": "⚠️ **Insufficient Tokens**\n\nCannot generate daily image. Please add more Spark tokens to your Sogni account.",
+        "options": {}
+      },
+      "id": "no-tokens-message",
+      "name": "No Tokens Message",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    }
+  ],
+  "connections": {
+    "Every Day at 9 AM": {
+      "main": [
+        [
+          {
+            "node": "Prepare Daily Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Daily Data": {
+      "main": [
+        [
+          {
+            "node": "Check Token Balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Token Balance": {
+      "main": [
+        [
+          {
+            "node": "Has Tokens?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Tokens?": {
+      "main": [
+        [
+          {
+            "node": "Generate Daily Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Tokens Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Daily Image": {
+      "main": [
+        [
+          {
+            "node": "Format Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-26T00:00:00.000Z",
+  "versionId": "1"
+}
+
