@@ -33,8 +33,8 @@
     "copy:assets": "cp -r icons dist/ && cp -r nodes/**/*.json dist/nodes/ 2>/dev/null || true",
     "dev": "npm run build && npm run watch",
     "watch": "tsc --watch",
-    "lint": "eslint nodes credentials",
-    "lintfix": "eslint nodes credentials --fix",
+    "lint": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts'",
+    "lintfix": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' --fix",
     "prepublishOnly": "npm run build && npm run lint"
   },
   "files": [
@@ -51,6 +51,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
     "n8n-workflow": "^1.0.0",
     "typescript": "^5.0.0"
   },
