@@ -68,7 +68,7 @@ export class Sogni implements INodeType {
             name: 'Generate',
             value: 'generate',
             description: 'Generate AI images',
-            action: 'Generate an image',
+            action: 'Generate Sogni image',
           },
         ],
         default: 'generate',
@@ -172,12 +172,12 @@ export class Sogni implements INodeType {
           {
             name: 'Fast',
             value: 'fast',
-            description: 'Faster generation, uses SOGNI tokens',
+            description: 'Faster generation, uses SOGNI/Spark tokens',
           },
           {
             name: 'Relaxed',
             value: 'relaxed',
-            description: 'Slower but cheaper, uses Spark tokens',
+            description: 'Slower but cheaper, uses SOGNI/Spark tokens',
           },
         ],
         default: 'relaxed',
