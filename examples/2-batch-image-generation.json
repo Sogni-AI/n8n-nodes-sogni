@@ -44,12 +44,12 @@
         "operation": "generate",
         "modelId": "flux1-schnell-fp8",
         "positivePrompt": "={{ $json.prompts }}",
+        "network": "relaxed",
         "additionalFields": {
           "negativePrompt": "blurry, low quality, distorted, ugly",
           "steps": 4,
           "guidance": 3.5,
           "numberOfImages": 1,
-          "network": "relaxed",
           "tokenType": "spark",
           "seed": "={{ Math.floor(Math.random() * 1000000) }}"
         }
@@ -133,4 +133,3 @@
   "updatedAt": "2025-10-26T00:00:00.000Z",
   "versionId": "1"
 }
-

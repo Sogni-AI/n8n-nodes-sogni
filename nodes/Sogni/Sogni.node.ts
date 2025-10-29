@@ -4,7 +4,6 @@ import {
   INodeType,
   INodeTypeDescription,
   NodeOperationError,
-  IBinaryData,
   ILoadOptionsFunctions,
   INodePropertyOptions,
 } from 'n8n-workflow';
@@ -16,10 +15,13 @@ import { SogniClientWrapper, SogniError, ControlNetName } from '@sogni-ai/sogni-
  */
 function sniffMimeType(buffer: Buffer): string | undefined {
   if (!buffer || buffer.length < 4) return undefined;
-  // JPEG
+
+  // JPEG (at least 3 bytes needed, already ensured by <4 guard)
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
-  // PNG
+
+  // PNG (must have at least 8 bytes for the full signature)
   if (
+    buffer.length >= 8 &&
     buffer[0] === 0x89 &&
     buffer[1] === 0x50 &&
     buffer[2] === 0x4e &&
@@ -31,9 +33,13 @@ function sniffMimeType(buffer: Buffer): string | undefined {
   ) {
     return 'image/png';
   }
-  // GIF
-  const sig = buffer.slice(0, 6).toString('ascii');
-  if (sig === 'GIF87a' || sig === 'GIF89a') return 'image/gif';
+
+  // GIF (needs first 6 bytes)
+  if (buffer.length >= 6) {
+    const sig = buffer.slice(0, 6).toString('ascii');
+    if (sig === 'GIF87a' || sig === 'GIF89a') return 'image/gif';
+  }
+
   return undefined;
 }
 
@@ -154,7 +160,7 @@ export class Sogni implements INodeType {
 
       // ===== Image Generation Parameters =====
 
-      // (2) Model picker with search (loadOptions)
+      // Model picker with search (loadOptions)
       {
         displayName: 'Model Search',
         name: 'modelSearch',
@@ -221,7 +227,7 @@ export class Sogni implements INodeType {
           'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
       },
 
-      // ===== Regrouped Additional Fields (1) - with backward compatibility =====
+      // ===== Regrouped Additional Fields - with backward compatibility =====
       {
         displayName: 'Additional Fields',
         name: 'additionalFields',
@@ -534,7 +540,7 @@ export class Sogni implements INodeType {
     ],
   };
 
-  // (2) Model picker loadOptions
+  // Model picker loadOptions
   methods = {
     loadOptions: {
       async getModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
@@ -552,12 +558,13 @@ export class Sogni implements INodeType {
         });
 
         try {
-          const search = (this.getCurrentNodeParameter('modelSearch', false) as string) || '';
-          // Prefer sorting by worker count; apply server-side search when available.
+          // Read search text and coerce to string
+          const search = (this.getCurrentNodeParameter('modelSearch') as string) || '';
+
           const models = await client.getAvailableModels({
             sortByWorkers: true,
             minWorkers: 0,
-            // Some wrappers accept `search` or `filter`—pass both to be safe.
+            // Pass both keys; wrapper will ignore unknowns
             search: search || undefined,
             filter: search || undefined,
             limit: 100,
@@ -569,7 +576,7 @@ export class Sogni implements INodeType {
               model.health === 'healthy' ||
               model.status === 'healthy' ||
               (typeof model.healthy === 'boolean' ? model.healthy : workers > 0);
-            const recommended = healthy && workers >= 5; // heuristic
+            const recommended = healthy && workers >= 5;
             const badge = workers ? ` • ${workers} workers` : '';
             return {
               name: `${model.name || model.id}${badge}${recommended ? ' (recommended)' : ''}`,
@@ -602,7 +609,7 @@ export class Sogni implements INodeType {
       (credentials.appId as string) ||
       `n8n-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create Sogni client (16: reuse single connection across all input items)
+    // Create Sogni client (reuse single connection across all input items)
     const client = new SogniClientWrapper({
       username: credentials.username as string,
       password: credentials.password as string,
@@ -621,20 +628,21 @@ export class Sogni implements INodeType {
             // Image Generation
             const modelId = this.getNodeParameter('modelId', i) as string;
             const positivePrompt = this.getNodeParameter('positivePrompt', i) as string;
-            const network = this.getNodeParameter('network', i) as 'fast' | 'relaxed';
 
-            // (1) Grouped additional fields + full backward-compatibility with old flat shape
+            // Grouped additional fields + backward-compatibility with old flat shape
             const additional = (this.getNodeParameter('additionalFields', i, {}) as any) || {};
             const gen = (additional.generationSettings as any) || {};
             const out = (additional.output as any) || {};
             const adv = (additional.advanced as any) || {};
             const cn = (additional.controlNet as any) || {};
-
-            // Fallbacks for legacy flat additionalFields
             const legacy = additional;
 
-            const numberOfImages =
-              gen.numberOfImages ?? legacy.numberOfImages ?? /* default */ 1;
+            // --- network: support both top-level and legacy-in-additionalFields ---
+            const networkTop = (this.getNodeParameter('network', i) as 'fast' | 'relaxed' | undefined);
+            const networkLegacy = legacy.network as 'fast' | 'relaxed' | undefined;
+            const network = (networkTop ?? networkLegacy ?? 'relaxed');
+
+            const numberOfImages = gen.numberOfImages ?? legacy.numberOfImages ?? 1;
             const steps = gen.steps ?? legacy.steps ?? 20;
             const guidance = gen.guidance ?? legacy.guidance ?? 7.5;
             const negativePrompt = gen.negativePrompt ?? legacy.negativePrompt ?? '';
@@ -650,7 +658,7 @@ export class Sogni implements INodeType {
             const width = out.width ?? legacy.width;
             const height = out.height ?? legacy.height;
 
-            // (10) Timeout defaults by network if user left it empty
+            // Timeout defaults by network if user left it empty
             const resolvedTimeoutMs =
               typeof timeoutInput === 'number' && !Number.isNaN(timeoutInput)
                 ? timeoutInput
@@ -679,8 +687,7 @@ export class Sogni implements INodeType {
             };
 
             // ControlNet support
-            const enableControlNet =
-              cn.enableControlNet ?? legacy.enableControlNet ?? false;
+            const enableControlNet = cn.enableControlNet ?? legacy.enableControlNet ?? false;
 
             if (enableControlNet) {
               const controlNetType = (cn.controlNetType ?? legacy.controlNetType) as ControlNetName;
@@ -710,22 +717,25 @@ export class Sogni implements INodeType {
 
             // Generate image
             const result = await client.createProject(projectConfig);
+            const r: any = result; // relaxed view for optional fields not declared on the SDK type
 
             // Prepare output data
+            const projectId = r.projectId ?? r.project?.id ?? undefined;
+
             const outputData: INodeExecutionData = {
               json: {
-                projectId: result.project?.id ?? result?.projectId ?? undefined,
+                projectId,
                 modelId,
                 prompt: positivePrompt,
-                imageUrls: result.imageUrls || [],
-                completed: result.completed,
-                jobs: Array.isArray(result.jobs)
-                  ? result.jobs.map((job: any) => ({
+                imageUrls: r.imageUrls || [],
+                completed: r.completed,
+                jobs: Array.isArray(r.jobs)
+                  ? r.jobs.map((job: any) => ({
                       id: job.id,
                       status: job.status,
                     }))
                   : undefined,
-                // (21) Surface returned metadata when available
+                // Surface returned metadata when available
                 meta: {
                   network,
                   tokenType,
@@ -735,93 +745,58 @@ export class Sogni implements INodeType {
                     numberOfImages,
                     timeoutMs: resolvedTimeoutMs,
                   },
-                  // Standardized/common fields (best-effort)
-                  cost:
-                    result.cost ??
-                    result.costTokens ??
-                    result.tokensUsed ??
-                    result.tokenCost ??
-                    undefined,
-                  queuePosition:
-                    result.queuePosition ??
-                    result.queue?.position ??
-                    result.position ??
-                    undefined,
+                  cost: r.cost ?? r.costTokens ?? r.tokensUsed ?? r.tokenCost ?? undefined,
+                  queuePosition: r.queuePosition ?? r.queue?.position ?? r.position ?? undefined,
                   latencies: {
                     queueMs:
-                      result.queueTimeMs ??
-                      result.latencies?.queueMs ??
-                      result.metrics?.queueTimeMs ??
-                      undefined,
+                      r.queueTimeMs ?? r.latencies?.queueMs ?? r.metrics?.queueTimeMs ?? undefined,
                     generationMs:
-                      result.generationTimeMs ??
-                      result.latencies?.generationMs ??
-                      result.metrics?.generationTimeMs ??
+                      r.generationTimeMs ??
+                      r.latencies?.generationMs ??
+                      r.metrics?.generationTimeMs ??
                       undefined,
                     totalMs:
-                      result.totalTimeMs ??
-                      result.latencies?.totalMs ??
-                      result.metrics?.totalTimeMs ??
-                      undefined,
+                      r.totalTimeMs ?? r.latencies?.totalMs ?? r.metrics?.totalTimeMs ?? undefined,
                   },
-                  workerId: result.workerId ?? result.worker?.id ?? undefined,
-                  modelVersion:
-                    result.modelVersion ?? result.model?.version ?? undefined,
-                  // Pass through raw metadata if provided by API
-                  raw: result.meta ?? result.metadata ?? undefined,
+                  workerId: r.workerId ?? r.worker?.id ?? undefined,
+                  modelVersion: r.modelVersion ?? r.model?.version ?? undefined,
+                  raw: r.meta ?? r.metadata ?? undefined,
                 },
               },
               binary: {},
             };
 
-            // (9) Download images using n8n http helper; detect mime & filename
-            if (downloadImages !== false && result.imageUrls && result.imageUrls.length > 0) {
-              for (let imgIndex = 0; imgIndex < result.imageUrls.length; imgIndex++) {
-                const imageUrl = result.imageUrls[imgIndex];
+            // Download images using native fetch; detect mime & filename
+            if (downloadImages !== false && r.imageUrls && r.imageUrls.length > 0) {
+              for (let imgIndex = 0; imgIndex < r.imageUrls.length; imgIndex++) {
+                const imageUrl = r.imageUrls[imgIndex];
 
                 try {
                   let bodyBuffer: Buffer;
                   let headers: Record<string, string> = {};
 
-                  // Prefer n8n HTTP helper to respect proxies/CA
-                  try {
-                    const response: any = await this.helpers.httpRequest({
-                      method: 'GET',
-                      url: imageUrl,
-                      // @ts-expect-error: n8n request options are untyped here; return full response & buffer
-                      resolveWithFullResponse: true,
-                      // @ts-expect-error
-                      encoding: null,
-                    });
-                    headers = (response.headers || {}) as Record<string, string>;
-                    const buf = (response.body as Buffer) || Buffer.from(response as any);
-                    bodyBuffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
-                  } catch {
-                    // Fallback to native fetch if helper fails
-                    const resp = await fetch(imageUrl);
-                    if (!resp.ok) {
-                      throw new Error(`Failed to download image: ${resp.status} ${resp.statusText}`);
-                    }
-                    const arrayBuffer = await resp.arrayBuffer();
-                    bodyBuffer = Buffer.from(arrayBuffer);
-                    // normalize fetch headers
-                    headers = {};
-                    resp.headers.forEach((v, k) => {
-                      headers[k.toLowerCase()] = v;
-                    });
+                  const resp = await fetch(imageUrl);
+                  if (!resp.ok) {
+                    throw new Error(`Failed to download image: ${resp.status} ${resp.statusText}`);
                   }
+                  const arrayBuffer = await resp.arrayBuffer();
+                  bodyBuffer = Buffer.from(arrayBuffer);
 
-                  const headerCt = headers['content-type'] || headers['Content-Type'];
+                  // normalize fetch headers
+                  headers = {};
+                  resp.headers.forEach((v, k) => {
+                    headers[k.toLowerCase()] = v;
+                  });
+
+                  const headerCt = headers['content-type'] || (headers as any)['Content-Type'];
                   const mimeType = headerCt || sniffMimeType(bodyBuffer) || 'application/octet-stream';
                   const headerCd =
-                    headers['content-disposition'] || headers['Content-Disposition'];
+                    headers['content-disposition'] || (headers as any)['Content-Disposition'];
                   const cdFilename = parseContentDispositionFilename(headerCd);
                   const guessedExt = extensionFromMime(mimeType);
 
-                  const defaultNameBase =
-                    (result.project?.id ?? result?.projectId ?? 'sogni') + `_${imgIndex}`;
-                  const filename =
-                    cdFilename || `${defaultNameBase}.${guessedExt || 'bin'}`;
+                  const defaultNameBase = (projectId ?? 'sogni') + `_${imgIndex}`;
+                  const filename = cdFilename || `${defaultNameBase}.${guessedExt || 'bin'}`;
 
                   const binaryPropertyName = imgIndex === 0 ? 'image' : `image_${imgIndex}`;
 
@@ -896,7 +871,7 @@ export class Sogni implements INodeType {
 
       return [returnData];
     } finally {
-      // Always disconnect (13)
+      // Always disconnect
       await client.disconnect();
     }
   }

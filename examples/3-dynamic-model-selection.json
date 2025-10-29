@@ -42,12 +42,12 @@
         "operation": "generate",
         "modelId": "={{ $json.modelId }}",
         "positivePrompt": "A majestic dragon flying over a medieval castle, epic fantasy art, detailed",
+        "network": "relaxed",
         "additionalFields": {
           "negativePrompt": "blurry, low quality, cartoon",
           "steps": "={{ $json.recommendedSteps }}",
           "guidance": "={{ $json.recommendedGuidance }}",
           "numberOfImages": 1,
-          "network": "relaxed",
           "tokenType": "spark"
         }
       },
@@ -109,4 +109,3 @@
   "updatedAt": "2025-10-26T00:00:00.000Z",
   "versionId": "1"
 }
-

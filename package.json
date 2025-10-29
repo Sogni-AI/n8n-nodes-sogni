@@ -30,11 +30,11 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && npm run copy:assets",
-    "copy:assets": "cp -r icons dist/ && cp -r nodes/**/*.json dist/nodes/ 2>/dev/null || true",
+    "copy:assets": "mkdir -p dist/nodes/Sogni 2>/dev/null || true && cp -r icons dist/ 2>/dev/null || true && cp -f icons/sogni.svg dist/nodes/Sogni/ 2>/dev/null || true && cp -r nodes/**/*.json dist/nodes/ 2>/dev/null || true",
     "dev": "npm run build && npm run watch",
     "watch": "tsc --watch",
-    "lint": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts'",
-    "lintfix": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' --fix",
+    "lint": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' 'index.ts'",
+    "lintfix": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' 'index.ts' --fix",
     "prepublishOnly": "npm run build && npm run lint"
   },
   "files": [

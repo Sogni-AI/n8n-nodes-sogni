@@ -15,12 +15,12 @@
         "operation": "generate",
         "modelId": "flux1-schnell-fp8",
         "positivePrompt": "A beautiful sunset over mountains, vibrant colors, photorealistic",
+        "network": "fast",
         "additionalFields": {
           "negativePrompt": "blurry, low quality, distorted",
           "steps": 4,
           "guidance": 3.5,
           "numberOfImages": 1,
-          "network": "fast",
           "tokenType": "spark"
         }
       },
@@ -60,4 +60,3 @@
   "updatedAt": "2025-10-26T00:00:00.000Z",
   "versionId": "1"
 }
-

@@ -81,12 +81,12 @@
         "operation": "generate",
         "modelId": "flux1-schnell-fp8",
         "positivePrompt": "={{ $('Prepare Daily Data').item.json.prompt }}, beautiful, high quality, detailed",
+        "network": "relaxed",
         "additionalFields": {
           "negativePrompt": "blurry, low quality, ugly",
           "steps": 4,
           "guidance": 3.5,
           "numberOfImages": 1,
-          "network": "relaxed",
           "tokenType": "spark"
         }
       },
@@ -199,4 +199,3 @@
   "updatedAt": "2025-10-26T00:00:00.000Z",
   "versionId": "1"
 }
-
