@@ -28,7 +28,7 @@ Generate AI images using Sogni AI Supernet directly in your n8n workflows with *
 
 ### ⚙️ Improved Defaults
 - Default network: `relaxed` (more economical)
-- Default timeout: 10 minutes (for relaxed network)
+- **Timeout defaults by network** when not set: `fast = 60s`, `relaxed = 600s`
 - Default token type: `spark`
 - Download images: enabled by default
 
@@ -259,7 +259,7 @@ Binary data includes:
 
 ### 1. Network Selection
 
-- **Fast Network**: 
+- **Fast Network**:
   - Uses SOGNI tokens
   - Faster generation (seconds to minutes)
   - Higher cost
@@ -320,7 +320,7 @@ Use "Get All Models" operation to see all available models.
 
 ### "No binary data found" (ControlNet)
 
-**Solution**: 
+**Solution**:
 1. Ensure previous node outputs binary data
 2. Check the binary property name
 3. Use "View" in n8n to inspect data
@@ -463,4 +463,3 @@ Built with:
 ---
 
 **Ready to generate amazing AI images with ControlNet in your n8n workflows!** 🎨✨
-

@@ -5,9 +5,54 @@ import {
   INodeTypeDescription,
   NodeOperationError,
   IBinaryData,
+  ILoadOptionsFunctions,
+  INodePropertyOptions,
 } from 'n8n-workflow';
 
 import { SogniClientWrapper, SogniError, ControlNetName } from '@sogni-ai/sogni-client-wrapper';
+
+/**
+ * Simple MIME sniff for common image types (fallback when server doesn't send content-type)
+ */
+function sniffMimeType(buffer: Buffer): string | undefined {
+  if (!buffer || buffer.length < 4) return undefined;
+  // JPEG
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  // PNG
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  // GIF
+  const sig = buffer.slice(0, 6).toString('ascii');
+  if (sig === 'GIF87a' || sig === 'GIF89a') return 'image/gif';
+  return undefined;
+}
+
+function extensionFromMime(mime: string): string {
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/gif') return 'gif';
+  return 'bin';
+}
+
+function parseContentDispositionFilename(header?: string): string | undefined {
+  if (!header) return undefined;
+  // Try RFC 5987 then basic filename=
+  const starMatch = header.match(/filename\*=UTF-8''([^;]+)/i);
+  if (starMatch?.[1]) return decodeURIComponent(starMatch[1]);
+  const basicMatch = header.match(/filename="([^"]+)"/i) || header.match(/filename=([^;]+)/i);
+  if (basicMatch?.[1]) return basicMatch[1].replace(/["]/g, '').trim();
+  return undefined;
+}
 
 export class Sogni implements INodeType {
   description: INodeTypeDescription = {
@@ -36,18 +81,9 @@ export class Sogni implements INodeType {
         type: 'options',
         noDataExpression: true,
         options: [
-          {
-            name: 'Image',
-            value: 'image',
-          },
-          {
-            name: 'Model',
-            value: 'model',
-          },
-          {
-            name: 'Account',
-            value: 'account',
-          },
+          { name: 'Image', value: 'image' },
+          { name: 'Model', value: 'model' },
+          { name: 'Account', value: 'account' },
         ],
         default: 'image',
       },
@@ -59,9 +95,7 @@ export class Sogni implements INodeType {
         type: 'options',
         noDataExpression: true,
         displayOptions: {
-          show: {
-            resource: ['image'],
-          },
+          show: { resource: ['image'] },
         },
         options: [
           {
@@ -81,9 +115,7 @@ export class Sogni implements INodeType {
         type: 'options',
         noDataExpression: true,
         displayOptions: {
-          show: {
-            resource: ['model'],
-          },
+          show: { resource: ['model'] },
         },
         options: [
           {
@@ -108,11 +140,7 @@ export class Sogni implements INodeType {
         name: 'operation',
         type: 'options',
         noDataExpression: true,
-        displayOptions: {
-          show: {
-            resource: ['account'],
-          },
-        },
+        displayOptions: { show: { resource: ['account'] } },
         options: [
           {
             name: 'Get Balance',
@@ -125,36 +153,47 @@ export class Sogni implements INodeType {
       },
 
       // ===== Image Generation Parameters =====
+
+      // (2) Model picker with search (loadOptions)
       {
-        displayName: 'Model ID',
-        name: 'modelId',
+        displayName: 'Model Search',
+        name: 'modelSearch',
         type: 'string',
+        placeholder: 'e.g., flux, sd, anime, portrait',
+        default: '',
+        description:
+          'Type to filter models by name/tag. The dropdown below refreshes when you edit this field.',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['generate'] },
+        },
+      },
+      {
+        displayName: 'Model',
+        name: 'modelId',
+        type: 'options',
         required: true,
         displayOptions: {
-          show: {
-            resource: ['image'],
-            operation: ['generate'],
-          },
+          show: { resource: ['image'], operation: ['generate'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getModelOptions',
+          loadOptionsDependsOn: ['modelSearch'],
         },
         default: 'flux1-schnell-fp8',
-        description: 'The AI model to use for generation',
-        placeholder: 'flux1-schnell-fp8',
+        description:
+          'Choose a model from the list (recommended), or paste a known model ID into this field.',
       },
+
       {
         displayName: 'Positive Prompt',
         name: 'positivePrompt',
         type: 'string',
         required: true,
         displayOptions: {
-          show: {
-            resource: ['image'],
-            operation: ['generate'],
-          },
+          show: { resource: ['image'], operation: ['generate'] },
         },
         default: '',
-        typeOptions: {
-          rows: 4,
-        },
+        typeOptions: { rows: 4 },
         description: 'Text description of what you want to generate',
         placeholder: 'A beautiful sunset over mountains, vibrant colors, photorealistic',
       },
@@ -163,10 +202,7 @@ export class Sogni implements INodeType {
         name: 'network',
         type: 'options',
         displayOptions: {
-          show: {
-            resource: ['image'],
-            operation: ['generate'],
-          },
+          show: { resource: ['image'], operation: ['generate'] },
         },
         options: [
           {
@@ -181,371 +217,293 @@ export class Sogni implements INodeType {
           },
         ],
         default: 'relaxed',
-        description: 'Network type to use',
+        description:
+          'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
       },
+
+      // ===== Regrouped Additional Fields (1) - with backward compatibility =====
       {
         displayName: 'Additional Fields',
         name: 'additionalFields',
-        type: 'collection',
-        placeholder: 'Add Field',
+        type: 'fixedCollection',
+        placeholder: 'Add Field Group',
         default: {},
         displayOptions: {
-          show: {
-            resource: ['image'],
-            operation: ['generate'],
-          },
+          show: { resource: ['image'], operation: ['generate'] },
         },
         options: [
           {
-            displayName: 'Negative Prompt',
-            name: 'negativePrompt',
-            type: 'string',
-            default: '',
-            typeOptions: {
-              rows: 2,
-            },
-            description: 'Text description of what you don\'t want to see',
-            placeholder: 'blurry, low quality, distorted',
-          },
-          {
-            displayName: 'Style Prompt',
-            name: 'stylePrompt',
-            type: 'string',
-            default: '',
-            description: 'Style description for the image',
-            placeholder: 'anime, photorealistic, oil painting',
-          },
-          {
-            displayName: 'Number of Images',
-            name: 'numberOfImages',
-            type: 'number',
-            default: 1,
-            description: 'Number of images to generate (1-10)',
-            typeOptions: {
-              minValue: 1,
-              maxValue: 10,
-            },
-          },
-          {
-            displayName: 'Steps',
-            name: 'steps',
-            type: 'number',
-            default: 20,
-            description: 'Number of inference steps. More steps = better quality but slower. Flux models work best with 4 steps.',
-            typeOptions: {
-              minValue: 1,
-              maxValue: 100,
-            },
-          },
-          {
-            displayName: 'Guidance',
-            name: 'guidance',
-            type: 'number',
-            default: 7.5,
-            description: 'How closely to follow the prompt. 7.5 is optimal for most models.',
-            typeOptions: {
-              minValue: 0,
-              maxValue: 30,
-              numberPrecision: 1,
-            },
-          },
-          {
-            displayName: 'Token Type',
-            name: 'tokenType',
-            type: 'options',
-            options: [
+            displayName: 'Generation Settings',
+            name: 'generationSettings',
+            values: [
               {
-                name: 'Spark',
-                value: 'spark',
+                displayName: 'Negative Prompt',
+                name: 'negativePrompt',
+                type: 'string',
+                default: '',
+                typeOptions: { rows: 2 },
+                description: "Text description of what you don't want to see",
+                placeholder: 'blurry, low quality, distorted',
               },
               {
-                name: 'SOGNI',
-                value: 'sogni',
+                displayName: 'Style Prompt',
+                name: 'stylePrompt',
+                type: 'string',
+                default: '',
+                description: 'Style description for the image',
+                placeholder: 'anime, photorealistic, oil painting',
+              },
+              {
+                displayName: 'Number of Images',
+                name: 'numberOfImages',
+                type: 'number',
+                default: 1,
+                description: 'Number of images to generate (1-10)',
+                typeOptions: { minValue: 1, maxValue: 10 },
+              },
+              {
+                displayName: 'Steps',
+                name: 'steps',
+                type: 'number',
+                default: 20,
+                description:
+                  'Number of inference steps. More steps = better quality but slower. Flux models work best with 4 steps.',
+                typeOptions: { minValue: 1, maxValue: 100 },
+              },
+              {
+                displayName: 'Guidance',
+                name: 'guidance',
+                type: 'number',
+                default: 7.5,
+                description: 'How closely to follow the prompt. 7.5 is optimal for most models.',
+                typeOptions: { minValue: 0, maxValue: 30, numberPrecision: 1 },
+              },
+              {
+                displayName: 'Seed',
+                name: 'seed',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Random seed for reproducibility. Leave empty for random.',
+                placeholder: '12345',
               },
             ],
-            default: 'spark',
-            description: 'Token type to use for payment',
           },
           {
-            displayName: 'Output Format',
-            name: 'outputFormat',
-            type: 'options',
-            options: [
+            displayName: 'Output',
+            name: 'output',
+            values: [
               {
-                name: 'PNG',
-                value: 'png',
+                displayName: 'Download Images',
+                name: 'downloadImages',
+                type: 'boolean',
+                default: true,
+                description:
+                  'Whether to download images as binary data (recommended to avoid 24h URL expiry)',
               },
               {
-                name: 'JPG',
-                value: 'jpg',
+                displayName: 'Output Format',
+                name: 'outputFormat',
+                type: 'options',
+                options: [
+                  { name: 'PNG', value: 'png' },
+                  { name: 'JPG', value: 'jpg' },
+                ],
+                default: 'png',
+                description: 'Output image format',
+              },
+              {
+                displayName: 'Size Preset',
+                name: 'sizePreset',
+                type: 'string',
+                default: '',
+                description:
+                  'Size preset ID (e.g., "square_hd", "portrait_4_7"). Leave empty for default.',
+                placeholder: 'square_hd',
+              },
+              {
+                displayName: 'Custom Width',
+                name: 'width',
+                type: 'number',
+                default: 1024,
+                description:
+                  'Custom width in pixels (256-2048). Only used if Size Preset is "custom".',
+                typeOptions: { minValue: 256, maxValue: 2048 },
+              },
+              {
+                displayName: 'Custom Height',
+                name: 'height',
+                type: 'number',
+                default: 1024,
+                description:
+                  'Custom height in pixels (256-2048). Only used if Size Preset is "custom".',
+                typeOptions: { minValue: 256, maxValue: 2048 },
               },
             ],
-            default: 'png',
-            description: 'Output image format',
           },
           {
-            displayName: 'Download Images',
-            name: 'downloadImages',
-            type: 'boolean',
-            default: true,
-            description: 'Whether to download images as binary data (recommended to avoid 24h URL expiry)',
-          },
-          {
-            displayName: 'Size Preset',
-            name: 'sizePreset',
-            type: 'string',
-            default: '',
-            description: 'Size preset ID (e.g., "square_hd", "portrait_4_7"). Leave empty for default.',
-            placeholder: 'square_hd',
-          },
-          {
-            displayName: 'Custom Width',
-            name: 'width',
-            type: 'number',
-            default: 1024,
-            description: 'Custom width in pixels (256-2048). Only used if Size Preset is "custom".',
-            typeOptions: {
-              minValue: 256,
-              maxValue: 2048,
-            },
-          },
-          {
-            displayName: 'Custom Height',
-            name: 'height',
-            type: 'number',
-            default: 1024,
-            description: 'Custom height in pixels (256-2048). Only used if Size Preset is "custom".',
-            typeOptions: {
-              minValue: 256,
-              maxValue: 2048,
-            },
-          },
-          {
-            displayName: 'Seed',
-            name: 'seed',
-            type: 'number',
-            default: undefined,
-            description: 'Random seed for reproducibility. Leave empty for random.',
-            placeholder: '12345',
-          },
-          {
-            displayName: 'Timeout (ms)',
-            name: 'timeout',
-            type: 'number',
-            default: 600000,
-            description: 'Maximum time to wait for image generation in milliseconds (10 minutes for relaxed network)',
-            typeOptions: {
-              minValue: 30000,
-            },
-          },
-          // ControlNet Section
-          {
-            displayName: 'Enable ControlNet',
-            name: 'enableControlNet',
-            type: 'boolean',
-            default: false,
-            description: 'Whether to use ControlNet for guided image generation',
-          },
-          {
-            displayName: 'ControlNet Type',
-            name: 'controlNetType',
-            type: 'options',
-            displayOptions: {
-              show: {
-                '/additionalFields.enableControlNet': [true],
-              },
-            },
-            options: [
+            displayName: 'Advanced',
+            name: 'advanced',
+            values: [
               {
-                name: 'Canny (Edge Detection)',
-                value: 'canny',
-                description: 'Detect edges in the control image',
+                displayName: 'Token Type',
+                name: 'tokenType',
+                type: 'options',
+                options: [
+                  { name: 'Spark', value: 'spark' },
+                  { name: 'SOGNI', value: 'sogni' },
+                ],
+                default: 'spark',
+                description: 'Token type to use for payment',
               },
               {
-                name: 'Scribble',
-                value: 'scribble',
-                description: 'Use hand-drawn scribbles as control',
-              },
-              {
-                name: 'Line Art',
-                value: 'lineart',
-                description: 'Extract line art from control image',
-              },
-              {
-                name: 'Line Art Anime',
-                value: 'lineartanime',
-                description: 'Extract anime-style line art',
-              },
-              {
-                name: 'Soft Edge',
-                value: 'softedge',
-                description: 'Detect soft edges',
-              },
-              {
-                name: 'Shuffle',
-                value: 'shuffle',
-                description: 'Shuffle control image',
-              },
-              {
-                name: 'Tile',
-                value: 'tile',
-                description: 'Use tiling pattern',
-              },
-              {
-                name: 'Inpaint',
-                value: 'inpaint',
-                description: 'Inpaint masked areas',
-              },
-              {
-                name: 'InstructPix2Pix',
-                value: 'instrp2p',
-                description: 'Instruction-based image editing',
-              },
-              {
-                name: 'Depth',
-                value: 'depth',
-                description: 'Use depth map',
-              },
-              {
-                name: 'Normal Map',
-                value: 'normalbae',
-                description: 'Use normal map',
-              },
-              {
-                name: 'OpenPose',
-                value: 'openpose',
-                description: 'Use pose detection',
-              },
-              {
-                name: 'Segmentation',
-                value: 'segmentation',
-                description: 'Use semantic segmentation',
-              },
-              {
-                name: 'MLSD (Line Segment)',
-                value: 'mlsd',
-                description: 'Mobile Line Segment Detection',
-              },
-              {
-                name: 'InstantID',
-                value: 'instantid',
-                description: 'Instant identity preservation',
+                displayName: 'Timeout (ms)',
+                name: 'timeout',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'Maximum time to wait for image generation in milliseconds. If left empty, defaults to 60,000 for fast or 600,000 for relaxed network.',
+                typeOptions: { minValue: 30000 },
               },
             ],
-            default: 'canny',
-            description: 'Type of ControlNet to use',
           },
           {
-            displayName: 'ControlNet Image (Binary Property)',
-            name: 'controlNetImageProperty',
-            type: 'string',
-            displayOptions: {
-              show: {
-                '/additionalFields.enableControlNet': [true],
-              },
-            },
-            default: 'data',
-            description: 'Name of the binary property containing the control image',
-            placeholder: 'data',
-          },
-          {
-            displayName: 'ControlNet Strength',
-            name: 'controlNetStrength',
-            type: 'number',
-            displayOptions: {
-              show: {
-                '/additionalFields.enableControlNet': [true],
-              },
-            },
-            default: 0.5,
-            description: 'Control strength (0-1). 0 = full control to prompt, 1 = full control to ControlNet',
-            typeOptions: {
-              minValue: 0,
-              maxValue: 1,
-              numberPrecision: 2,
-            },
-          },
-          {
-            displayName: 'ControlNet Mode',
-            name: 'controlNetMode',
-            type: 'options',
-            displayOptions: {
-              show: {
-                '/additionalFields.enableControlNet': [true],
-              },
-            },
-            options: [
+            displayName: 'ControlNet',
+            name: 'controlNet',
+            values: [
               {
-                name: 'Balanced',
-                value: 'balanced',
-                description: 'Balanced between prompt and control',
+                displayName: 'Enable ControlNet',
+                name: 'enableControlNet',
+                type: 'boolean',
+                default: false,
+                description: 'Whether to use ControlNet for guided image generation',
               },
               {
-                name: 'Prompt Priority',
-                value: 'prompt_priority',
-                description: 'Prompt has more impact',
+                displayName: 'ControlNet Type',
+                name: 'controlNetType',
+                type: 'options',
+                displayOptions: {
+                  show: { '/additionalFields.controlNet.enableControlNet': [true] },
+                },
+                options: [
+                  { name: 'Canny (Edge Detection)', value: 'canny', description: 'Detect edges' },
+                  { name: 'Scribble', value: 'scribble', description: 'Hand-drawn scribbles' },
+                  { name: 'Line Art', value: 'lineart', description: 'Extract line art' },
+                  { name: 'Line Art Anime', value: 'lineartanime', description: 'Anime line art' },
+                  { name: 'Soft Edge', value: 'softedge', description: 'Detect soft edges' },
+                  { name: 'Shuffle', value: 'shuffle', description: 'Shuffle control image' },
+                  { name: 'Tile', value: 'tile', description: 'Tiling pattern' },
+                  { name: 'Inpaint', value: 'inpaint', description: 'Inpaint masked areas' },
+                  {
+                    name: 'InstructPix2Pix',
+                    value: 'instrp2p',
+                    description: 'Instruction-based editing',
+                  },
+                  { name: 'Depth', value: 'depth', description: 'Use depth map' },
+                  { name: 'Normal Map', value: 'normalbae', description: 'Use normal map' },
+                  { name: 'OpenPose', value: 'openpose', description: 'Use pose detection' },
+                  {
+                    name: 'Segmentation',
+                    value: 'segmentation',
+                    description: 'Use semantic segmentation',
+                  },
+                  { name: 'MLSD (Line Segment)', value: 'mlsd', description: 'Line segments' },
+                  { name: 'InstantID', value: 'instantid', description: 'Identity preservation' },
+                ],
+                default: 'canny',
+                description: 'Type of ControlNet to use',
               },
               {
-                name: 'ControlNet Priority',
-                value: 'cn_priority',
-                description: 'ControlNet has more impact',
+                displayName: 'ControlNet Image (Binary Property)',
+                name: 'controlNetImageProperty',
+                type: 'string',
+                displayOptions: {
+                  show: { '/additionalFields.controlNet.enableControlNet': [true] },
+                },
+                default: 'data',
+                description: 'Name of the binary property containing the control image',
+                placeholder: 'data',
+              },
+              {
+                displayName: 'ControlNet Strength',
+                name: 'controlNetStrength',
+                type: 'number',
+                displayOptions: {
+                  show: { '/additionalFields.controlNet.enableControlNet': [true] },
+                },
+                default: 0.5,
+                description:
+                  'Control strength (0-1). 0 = full control to prompt, 1 = full control to ControlNet',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
+              },
+              {
+                displayName: 'ControlNet Mode',
+                name: 'controlNetMode',
+                type: 'options',
+                displayOptions: {
+                  show: { '/additionalFields.controlNet.enableControlNet': [true] },
+                },
+                options: [
+                  { name: 'Balanced', value: 'balanced', description: 'Balanced' },
+                  { name: 'Prompt Priority', value: 'prompt_priority', description: 'Prompt wins' },
+                  { name: 'ControlNet Priority', value: 'cn_priority', description: 'CN wins' },
+                ],
+                default: 'balanced',
+                description: 'How to weight control and prompt',
+              },
+              {
+                displayName: 'ControlNet Guidance Start',
+                name: 'controlNetGuidanceStart',
+                type: 'number',
+                displayOptions: {
+                  show: { '/additionalFields.controlNet.enableControlNet': [true] },
+                },
+                default: 0,
+                description: 'Step when ControlNet first applied (0-1)',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
+              },
+              {
+                displayName: 'ControlNet Guidance End',
+                name: 'controlNetGuidanceEnd',
+                type: 'number',
+                displayOptions: {
+                  show: { '/additionalFields.controlNet.enableControlNet': [true] },
+                },
+                default: 1,
+                description: 'Step when ControlNet last applied (0-1)',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
               },
             ],
-            default: 'balanced',
-            description: 'How to weight control and prompt',
-          },
-          {
-            displayName: 'ControlNet Guidance Start',
-            name: 'controlNetGuidanceStart',
-            type: 'number',
-            displayOptions: {
-              show: {
-                '/additionalFields.enableControlNet': [true],
-              },
-            },
-            default: 0,
-            description: 'Step when ControlNet first applied (0-1)',
-            typeOptions: {
-              minValue: 0,
-              maxValue: 1,
-              numberPrecision: 2,
-            },
-          },
-          {
-            displayName: 'ControlNet Guidance End',
-            name: 'controlNetGuidanceEnd',
-            type: 'number',
-            displayOptions: {
-              show: {
-                '/additionalFields.enableControlNet': [true],
-              },
-            },
-            default: 1,
-            description: 'Step when ControlNet last applied (0-1)',
-            typeOptions: {
-              minValue: 0,
-              maxValue: 1,
-              numberPrecision: 2,
-            },
           },
         ],
       },
 
       // ===== Model Get Parameters =====
       {
-        displayName: 'Model ID',
-        name: 'modelId',
+        displayName: 'Model Search',
+        name: 'modelSearch',
         type: 'string',
+        placeholder: 'e.g., flux, sd, anime',
+        default: '',
+        displayOptions: {
+          show: { resource: ['model'], operation: ['get'] },
+        },
+        description:
+          'Type to filter models by name/tag. The dropdown below refreshes when you edit this field.',
+      },
+      {
+        displayName: 'Model',
+        name: 'modelId',
+        type: 'options',
         required: true,
         displayOptions: {
-          show: {
-            resource: ['model'],
-            operation: ['get'],
-          },
+          show: { resource: ['model'], operation: ['get'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getModelOptions',
+          loadOptionsDependsOn: ['modelSearch'],
         },
         default: '',
-        description: 'The ID of the model to retrieve',
-        placeholder: 'flux1-schnell-fp8',
+        description: 'The model to retrieve',
       },
       {
         displayName: 'Options',
@@ -554,10 +512,7 @@ export class Sogni implements INodeType {
         placeholder: 'Add Option',
         default: {},
         displayOptions: {
-          show: {
-            resource: ['model'],
-            operation: ['getAll'],
-          },
+          show: { resource: ['model'], operation: ['getAll'] },
         },
         options: [
           {
@@ -579,6 +534,62 @@ export class Sogni implements INodeType {
     ],
   };
 
+  // (2) Model picker loadOptions
+  methods = {
+    loadOptions: {
+      async getModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('sogniApi');
+        const appId =
+          (credentials.appId as string) ||
+          `n8n-model-picker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        const client = new SogniClientWrapper({
+          username: credentials.username as string,
+          password: credentials.password as string,
+          appId,
+          autoConnect: true,
+          debug: false,
+        });
+
+        try {
+          const search = (this.getCurrentNodeParameter('modelSearch', false) as string) || '';
+          // Prefer sorting by worker count; apply server-side search when available.
+          const models = await client.getAvailableModels({
+            sortByWorkers: true,
+            minWorkers: 0,
+            // Some wrappers accept `search` or `filter`—pass both to be safe.
+            search: search || undefined,
+            filter: search || undefined,
+            limit: 100,
+          } as any);
+
+          const options: INodePropertyOptions[] = (models as any[]).map((model: any) => {
+            const workers = model.workerCount ?? model.workers ?? 0;
+            const healthy =
+              model.health === 'healthy' ||
+              model.status === 'healthy' ||
+              (typeof model.healthy === 'boolean' ? model.healthy : workers > 0);
+            const recommended = healthy && workers >= 5; // heuristic
+            const badge = workers ? ` • ${workers} workers` : '';
+            return {
+              name: `${model.name || model.id}${badge}${recommended ? ' (recommended)' : ''}`,
+              value: model.id,
+              description: model.description || undefined,
+            };
+          });
+
+          return options;
+        } finally {
+          try {
+            await client.disconnect();
+          } catch {
+            // ignore
+          }
+        }
+      },
+    },
+  };
+
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
@@ -587,9 +598,11 @@ export class Sogni implements INodeType {
     const credentials = await this.getCredentials('sogniApi');
 
     // Generate unique appId per execution to avoid socket collisions
-    const appId = credentials.appId as string || `n8n-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const appId =
+      (credentials.appId as string) ||
+      `n8n-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create Sogni client
+    // Create Sogni client (16: reuse single connection across all input items)
     const client = new SogniClientWrapper({
       username: credentials.username as string,
       password: credentials.password as string,
@@ -609,53 +622,89 @@ export class Sogni implements INodeType {
             const modelId = this.getNodeParameter('modelId', i) as string;
             const positivePrompt = this.getNodeParameter('positivePrompt', i) as string;
             const network = this.getNodeParameter('network', i) as 'fast' | 'relaxed';
-            const additionalFields = this.getNodeParameter('additionalFields', i, {}) as any;
+
+            // (1) Grouped additional fields + full backward-compatibility with old flat shape
+            const additional = (this.getNodeParameter('additionalFields', i, {}) as any) || {};
+            const gen = (additional.generationSettings as any) || {};
+            const out = (additional.output as any) || {};
+            const adv = (additional.advanced as any) || {};
+            const cn = (additional.controlNet as any) || {};
+
+            // Fallbacks for legacy flat additionalFields
+            const legacy = additional;
+
+            const numberOfImages =
+              gen.numberOfImages ?? legacy.numberOfImages ?? /* default */ 1;
+            const steps = gen.steps ?? legacy.steps ?? 20;
+            const guidance = gen.guidance ?? legacy.guidance ?? 7.5;
+            const negativePrompt = gen.negativePrompt ?? legacy.negativePrompt ?? '';
+            const stylePrompt = gen.stylePrompt ?? legacy.stylePrompt ?? '';
+            const seed = gen.seed ?? legacy.seed;
+
+            const tokenType = adv.tokenType ?? legacy.tokenType ?? 'spark';
+            const timeoutInput = adv.timeout ?? legacy.timeout;
+
+            const downloadImages = out.downloadImages ?? legacy.downloadImages ?? true;
+            const outputFormat = out.outputFormat ?? legacy.outputFormat ?? 'png';
+            const sizePreset = out.sizePreset ?? legacy.sizePreset;
+            const width = out.width ?? legacy.width;
+            const height = out.height ?? legacy.height;
+
+            // (10) Timeout defaults by network if user left it empty
+            const resolvedTimeoutMs =
+              typeof timeoutInput === 'number' && !Number.isNaN(timeoutInput)
+                ? timeoutInput
+                : network === 'fast'
+                ? 60_000
+                : 600_000;
 
             // Build project config
             const projectConfig: any = {
               modelId,
               positivePrompt,
-              negativePrompt: additionalFields.negativePrompt || '',
-              stylePrompt: additionalFields.stylePrompt || '',
-              steps: additionalFields.steps || 20,
-              guidance: additionalFields.guidance || 7.5,
-              numberOfImages: additionalFields.numberOfImages || 1,
+              negativePrompt,
+              stylePrompt,
+              steps,
+              guidance,
+              numberOfImages,
               network,
-              tokenType: additionalFields.tokenType || 'spark',
-              outputFormat: additionalFields.outputFormat || 'png',
-              sizePreset: additionalFields.sizePreset,
-              width: additionalFields.width,
-              height: additionalFields.height,
-              seed: additionalFields.seed,
+              tokenType,
+              outputFormat,
+              sizePreset,
+              width,
+              height,
+              seed,
               waitForCompletion: true,
-              timeout: additionalFields.timeout || 600000,
+              timeout: resolvedTimeoutMs,
             };
 
             // ControlNet support
-            if (additionalFields.enableControlNet) {
-              const controlNetType = additionalFields.controlNetType as ControlNetName;
-              const imagePropertyName = additionalFields.controlNetImageProperty || 'data';
-              
-              // Get control image from binary data
+            const enableControlNet =
+              cn.enableControlNet ?? legacy.enableControlNet ?? false;
+
+            if (enableControlNet) {
+              const controlNetType = (cn.controlNetType ?? legacy.controlNetType) as ControlNetName;
+              const imagePropertyName =
+                cn.controlNetImageProperty ?? legacy.controlNetImageProperty ?? 'data';
+
               const binaryData = items[i].binary?.[imagePropertyName];
               if (!binaryData) {
                 throw new NodeOperationError(
                   this.getNode(),
                   `No binary data found in property "${imagePropertyName}". Please provide a control image.`,
-                  { itemIndex: i }
+                  { itemIndex: i },
                 );
               }
 
-              // Convert binary data to Buffer
               const imageBuffer = await this.helpers.getBinaryDataBuffer(i, imagePropertyName);
 
               projectConfig.controlNet = {
                 name: controlNetType,
                 image: imageBuffer,
-                strength: additionalFields.controlNetStrength || 0.5,
-                mode: additionalFields.controlNetMode || 'balanced',
-                guidanceStart: additionalFields.controlNetGuidanceStart || 0,
-                guidanceEnd: additionalFields.controlNetGuidanceEnd || 1,
+                strength: cn.controlNetStrength ?? legacy.controlNetStrength ?? 0.5,
+                mode: cn.controlNetMode ?? legacy.controlNetMode ?? 'balanced',
+                guidanceStart: cn.controlNetGuidanceStart ?? legacy.controlNetGuidanceStart ?? 0,
+                guidanceEnd: cn.controlNetGuidanceEnd ?? legacy.controlNetGuidanceEnd ?? 1,
               };
             }
 
@@ -665,51 +714,131 @@ export class Sogni implements INodeType {
             // Prepare output data
             const outputData: INodeExecutionData = {
               json: {
-                projectId: result.project.id,
+                projectId: result.project?.id ?? result?.projectId ?? undefined,
                 modelId,
                 prompt: positivePrompt,
                 imageUrls: result.imageUrls || [],
                 completed: result.completed,
-                jobs: result.jobs?.map((job: any) => ({
-                  id: job.id,
-                  status: job.status,
-                })),
+                jobs: Array.isArray(result.jobs)
+                  ? result.jobs.map((job: any) => ({
+                      id: job.id,
+                      status: job.status,
+                    }))
+                  : undefined,
+                // (21) Surface returned metadata when available
+                meta: {
+                  network,
+                  tokenType,
+                  resolved: {
+                    steps,
+                    guidance,
+                    numberOfImages,
+                    timeoutMs: resolvedTimeoutMs,
+                  },
+                  // Standardized/common fields (best-effort)
+                  cost:
+                    result.cost ??
+                    result.costTokens ??
+                    result.tokensUsed ??
+                    result.tokenCost ??
+                    undefined,
+                  queuePosition:
+                    result.queuePosition ??
+                    result.queue?.position ??
+                    result.position ??
+                    undefined,
+                  latencies: {
+                    queueMs:
+                      result.queueTimeMs ??
+                      result.latencies?.queueMs ??
+                      result.metrics?.queueTimeMs ??
+                      undefined,
+                    generationMs:
+                      result.generationTimeMs ??
+                      result.latencies?.generationMs ??
+                      result.metrics?.generationTimeMs ??
+                      undefined,
+                    totalMs:
+                      result.totalTimeMs ??
+                      result.latencies?.totalMs ??
+                      result.metrics?.totalTimeMs ??
+                      undefined,
+                  },
+                  workerId: result.workerId ?? result.worker?.id ?? undefined,
+                  modelVersion:
+                    result.modelVersion ?? result.model?.version ?? undefined,
+                  // Pass through raw metadata if provided by API
+                  raw: result.meta ?? result.metadata ?? undefined,
+                },
               },
               binary: {},
             };
 
-            // Download images if requested
-            if (additionalFields.downloadImages !== false && result.imageUrls && result.imageUrls.length > 0) {
+            // (9) Download images using n8n http helper; detect mime & filename
+            if (downloadImages !== false && result.imageUrls && result.imageUrls.length > 0) {
               for (let imgIndex = 0; imgIndex < result.imageUrls.length; imgIndex++) {
                 const imageUrl = result.imageUrls[imgIndex];
-                
+
                 try {
-                  const response = await fetch(imageUrl);
-                  if (!response.ok) {
-                    throw new Error(`Failed to download image: ${response.statusText}`);
+                  let bodyBuffer: Buffer;
+                  let headers: Record<string, string> = {};
+
+                  // Prefer n8n HTTP helper to respect proxies/CA
+                  try {
+                    const response: any = await this.helpers.httpRequest({
+                      method: 'GET',
+                      url: imageUrl,
+                      // @ts-expect-error: n8n request options are untyped here; return full response & buffer
+                      resolveWithFullResponse: true,
+                      // @ts-expect-error
+                      encoding: null,
+                    });
+                    headers = (response.headers || {}) as Record<string, string>;
+                    const buf = (response.body as Buffer) || Buffer.from(response as any);
+                    bodyBuffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+                  } catch {
+                    // Fallback to native fetch if helper fails
+                    const resp = await fetch(imageUrl);
+                    if (!resp.ok) {
+                      throw new Error(`Failed to download image: ${resp.status} ${resp.statusText}`);
+                    }
+                    const arrayBuffer = await resp.arrayBuffer();
+                    bodyBuffer = Buffer.from(arrayBuffer);
+                    // normalize fetch headers
+                    headers = {};
+                    resp.headers.forEach((v, k) => {
+                      headers[k.toLowerCase()] = v;
+                    });
                   }
-                  
-                  const arrayBuffer = await response.arrayBuffer();
-                  const buffer = Buffer.from(arrayBuffer);
-                  
+
+                  const headerCt = headers['content-type'] || headers['Content-Type'];
+                  const mimeType = headerCt || sniffMimeType(bodyBuffer) || 'application/octet-stream';
+                  const headerCd =
+                    headers['content-disposition'] || headers['Content-Disposition'];
+                  const cdFilename = parseContentDispositionFilename(headerCd);
+                  const guessedExt = extensionFromMime(mimeType);
+
+                  const defaultNameBase =
+                    (result.project?.id ?? result?.projectId ?? 'sogni') + `_${imgIndex}`;
+                  const filename =
+                    cdFilename || `${defaultNameBase}.${guessedExt || 'bin'}`;
+
                   const binaryPropertyName = imgIndex === 0 ? 'image' : `image_${imgIndex}`;
-                  const mimeType = additionalFields.outputFormat === 'jpg' ? 'image/jpeg' : 'image/png';
-                  const fileExtension = additionalFields.outputFormat === 'jpg' ? 'jpg' : 'png';
-                  
+
                   outputData.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
-                    buffer,
-                    `sogni_${result.project.id}_${imgIndex}.${fileExtension}`,
-                    mimeType
+                    bodyBuffer,
+                    filename,
+                    mimeType,
                   );
                 } catch (downloadError) {
                   // If download fails, still include the URL
+                  // eslint-disable-next-line no-console
                   console.error(`Failed to download image ${imgIndex}:`, downloadError);
                 }
               }
             }
 
             returnData.push(outputData);
-
           } else if (resource === 'model' && operation === 'getAll') {
             // Get All Models
             const options = this.getNodeParameter('options', i, {}) as any;
@@ -718,7 +847,7 @@ export class Sogni implements INodeType {
               minWorkers: options.minWorkers || 0,
             });
 
-            models.forEach((model: any) => {
+            (models as any[]).forEach((model: any) => {
               returnData.push({
                 json: {
                   id: model.id,
@@ -728,7 +857,6 @@ export class Sogni implements INodeType {
                 },
               });
             });
-
           } else if (resource === 'model' && operation === 'get') {
             // Get Specific Model
             const modelId = this.getNodeParameter('modelId', i) as string;
@@ -742,7 +870,6 @@ export class Sogni implements INodeType {
                 recommendedSettings: model.recommendedSettings,
               },
             });
-
           } else if (resource === 'account' && operation === 'getBalance') {
             // Get Balance
             const balance = await client.getBalance();
@@ -754,7 +881,6 @@ export class Sogni implements INodeType {
               },
             });
           }
-
         } catch (error) {
           if (this.continueOnFail()) {
             returnData.push({
@@ -769,11 +895,9 @@ export class Sogni implements INodeType {
       }
 
       return [returnData];
-
     } finally {
-      // Always disconnect
+      // Always disconnect (13)
       await client.disconnect();
     }
   }
 }
-
