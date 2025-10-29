@@ -772,7 +772,6 @@ export class Sogni implements INodeType {
                 const imageUrl = r.imageUrls[imgIndex];
 
                 try {
-                  let bodyBuffer: Buffer;
                   let headers: Record<string, string> = {};
 
                   const resp = await fetch(imageUrl);
@@ -780,7 +779,7 @@ export class Sogni implements INodeType {
                     throw new Error(`Failed to download image: ${resp.status} ${resp.statusText}`);
                   }
                   const arrayBuffer = await resp.arrayBuffer();
-                  bodyBuffer = Buffer.from(arrayBuffer);
+                  const bodyBuffer = Buffer.from(arrayBuffer);
 
                   // normalize fetch headers
                   headers = {};
