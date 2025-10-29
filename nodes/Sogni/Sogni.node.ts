@@ -222,7 +222,7 @@ export class Sogni implements INodeType {
             description: 'Slower but cheaper, uses SOGNI/Spark tokens',
           },
         ],
-        default: 'relaxed',
+        default: 'fast',
         description:
           'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
       },
@@ -640,7 +640,7 @@ export class Sogni implements INodeType {
             // --- network: support both top-level and legacy-in-additionalFields ---
             const networkTop = (this.getNodeParameter('network', i) as 'fast' | 'relaxed' | undefined);
             const networkLegacy = legacy.network as 'fast' | 'relaxed' | undefined;
-            const network = (networkTop ?? networkLegacy ?? 'relaxed');
+            const network = (networkTop ?? networkLegacy ?? 'fast');
 
             const numberOfImages = gen.numberOfImages ?? legacy.numberOfImages ?? 1;
             const steps = gen.steps ?? legacy.steps ?? 20;

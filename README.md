@@ -1,4 +1,4 @@
-# n8n-nodes-sogni v1.1
+# n8n-nodes-sogni
 
 **Enhanced n8n Community Node for Sogni AI Image Generation**
 
@@ -6,7 +6,7 @@ Generate AI images using Sogni AI Supernet directly in your n8n workflows with *
 
 ---
 
-## 🆕 What's New in v1.1
+## 🆕 What's New
 
 ### ✨ Full ControlNet Support
 - **15 ControlNet types** supported (canny, scribble, lineart, openpose, depth, and more)
@@ -413,7 +413,15 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.1.0 (Current)
+### v1.1.6 (Current)
+- ⚡ Changed default network from "relaxed" to "fast" for quicker generation
+- 📝 Documentation updates
+
+### v1.1.5
+- 🔧 Minor bug fixes and improvements
+- 📝 Documentation updates
+
+### v1.1.0-1.1.4
 - ✨ Added full ControlNet support (15 types)
 - 📥 Added automatic image download
 - 🔑 Enhanced appId auto-generation
