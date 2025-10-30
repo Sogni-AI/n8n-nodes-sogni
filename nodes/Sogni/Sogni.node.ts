@@ -11,6 +11,21 @@ import {
 import { SogniClientWrapper, SogniError, ControlNetName } from '@sogni-ai/sogni-client-wrapper';
 
 /**
+ * Generate a stable appId based on username
+ * This ensures we reuse the same connection instead of creating new ones each time
+ */
+function generateStableAppId(username: string): string {
+  // Simple hash function to create a deterministic ID from username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    const char = username.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `n8n-sogni-${Math.abs(hash)}`;
+}
+
+/**
  * Simple MIME sniff for common image types (fallback when server doesn't send content-type)
  */
 function sniffMimeType(buffer: Buffer): string | undefined {
@@ -545,9 +560,10 @@ export class Sogni implements INodeType {
     loadOptions: {
       async getModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
         const credentials = await this.getCredentials('sogniApi');
+        // Use stable appId based on username to avoid creating new connections each time
         const appId =
           (credentials.appId as string) ||
-          `n8n-model-picker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          generateStableAppId(credentials.username as string);
 
         const client = new SogniClientWrapper({
           username: credentials.username as string,
@@ -604,10 +620,10 @@ export class Sogni implements INodeType {
     // Get credentials
     const credentials = await this.getCredentials('sogniApi');
 
-    // Generate unique appId per execution to avoid socket collisions
+    // Use stable appId based on username to reuse connections and avoid leaks
     const appId =
       (credentials.appId as string) ||
-      `n8n-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      generateStableAppId(credentials.username as string);
 
     // Create Sogni client (reuse single connection across all input items)
     const client = new SogniClientWrapper({

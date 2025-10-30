@@ -58,7 +58,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client-wrapper": "^1.0.2"
+    "@sogni-ai/sogni-client-wrapper": "^1.0.3"
   },
   "engines": {
     "node": ">=18.0.0"
