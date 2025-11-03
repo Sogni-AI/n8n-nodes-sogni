@@ -11,26 +11,20 @@
     },
     {
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "prompts",
-              "value": "=[\n  \"A cute cat wearing sunglasses\",\n  \"A futuristic cityscape at night\",\n  \"A serene forest with morning mist\",\n  \"An abstract geometric pattern in blue and gold\"\n]"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "return [{\n  json: {\n    prompts: [\n      \"A cute cat wearing sunglasses\",\n      \"A futuristic cityscape at night\",\n      \"A serene forest with morning mist\",\n      \"An abstract geometric pattern in blue and gold\"\n    ]\n  }\n}];"
       },
       "id": "set-prompts",
-      "name": "Set Prompts",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3,
+      "name": "Create Prompt List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [450, 300]
     },
     {
       "parameters": {
         "fieldToSplitOut": "prompts",
-        "options": {}
+        "options": {
+          "destinationFieldName": "prompt"
+        }
       },
       "id": "split-prompts",
       "name": "Split Into Items",
@@ -43,10 +37,9 @@
         "resource": "image",
         "operation": "generate",
         "modelId": "flux1-schnell-fp8",
-        "positivePrompt": "={{ $json.prompts }}",
-        "network": "relaxed",
+        "positivePrompt": "={{ $json.prompt }}",
+        "network": "fast",
         "additionalFields": {
-          "negativePrompt": "blurry, low quality, distorted, ugly",
           "steps": 4,
           "guidance": 3.5,
           "numberOfImages": 1,
@@ -82,14 +75,14 @@
       "main": [
         [
           {
-            "node": "Set Prompts",
+            "node": "Create Prompt List",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Prompts": {
+    "Create Prompt List": {
       "main": [
         [
           {

@@ -17,7 +17,6 @@
         "positivePrompt": "A beautiful sunset over mountains, vibrant colors, photorealistic",
         "network": "fast",
         "additionalFields": {
-          "negativePrompt": "blurry, low quality, distorted",
           "steps": 4,
           "guidance": 3.5,
           "numberOfImages": 1,

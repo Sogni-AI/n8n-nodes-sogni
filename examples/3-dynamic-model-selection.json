@@ -42,7 +42,7 @@
         "operation": "generate",
         "modelId": "={{ $json.modelId }}",
         "positivePrompt": "A majestic dragon flying over a medieval castle, epic fantasy art, detailed",
-        "network": "relaxed",
+        "network": "fast",
         "additionalFields": {
           "negativePrompt": "blurry, low quality, cartoon",
           "steps": "={{ $json.recommendedSteps }}",

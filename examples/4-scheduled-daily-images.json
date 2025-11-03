@@ -81,9 +81,8 @@
         "operation": "generate",
         "modelId": "flux1-schnell-fp8",
         "positivePrompt": "={{ $('Prepare Daily Data').item.json.prompt }}, beautiful, high quality, detailed",
-        "network": "relaxed",
+        "network": "fast",
         "additionalFields": {
-          "negativePrompt": "blurry, low quality, ugly",
           "steps": 4,
           "guidance": 3.5,
           "numberOfImages": 1,
@@ -105,6 +104,7 @@
     {
       "parameters": {
         "content": "## Daily Image Generated\n\n**Date**: {{ $('Prepare Daily Data').item.json.date }}\n\n**Prompt**: {{ $('Prepare Daily Data').item.json.prompt }}\n\n**Image URL**: {{ $json.imageUrls[0] }}\n\n**Project ID**: {{ $json.projectId }}",
+        "html": "<h2>Daily Image Generated</h2>\n<p><strong>Date</strong>: {{ $('Prepare Daily Data').item.json.date }}</p>\n<p><strong>Prompt</strong>: {{ $('Prepare Daily Data').item.json.prompt }}</p>\n<p><strong>Image URL</strong>: {{ $json.imageUrls[0] }}</p>\n<p><strong>Project ID</strong>: {{ $json.projectId }}</p>",
         "options": {}
       },
       "id": "format-notification",
@@ -116,6 +116,7 @@
     {
       "parameters": {
         "content": "⚠️ **Insufficient Tokens**\n\nCannot generate daily image. Please add more Spark tokens to your Sogni account.",
+        "html": "<p>⚠️ <strong>Insufficient Tokens</strong></p>\n<p>Cannot generate daily image. Please add more Spark tokens to your Sogni account.</p>",
         "options": {}
       },
       "id": "no-tokens-message",
