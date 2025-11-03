@@ -4,6 +4,8 @@
 
 Generate AI images using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation.
 
+This node pulls from your personal Sogni account—[sign up for a free account](https://app.sogni.ai/create?code=n8n) to get 50 complimentary Render credits every day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
+
 ---
 
 ## 🆕 What's New
@@ -52,23 +54,19 @@ Generate AI images using Sogni AI Supernet directly in your n8n workflows with *
 
 ## Installation
 
-### Option 1: npm (Recommended)
+### Option 1: Community Nodes UI (Recommended)
 
-```bash
-cd ~/.n8n/custom
-npm install n8n-nodes-sogni
-n8n restart
-```
+1. In n8n, open **Settings ▸ Community Nodes**
+2. Select **Install**
+3. Enter `n8n-nodes-sogni`
+4. Confirm the installation (restart n8n if prompted)
 
 ### Option 2: Manual Installation
 
 ```bash
-cd ~/.n8n/custom
-git clone <repository-url>
-cd n8n-nodes-sogni
-npm install
-npm run build
-n8n restart
+# Run in your n8n installation directory
+npm install n8n-nodes-sogni
+# Restart your n8n instance after installation
 ```
 
 ---
@@ -413,7 +411,11 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.1.6 (Current)
+### v1.1.8 (Current)
+- 🆕 Refreshed installation instructions and Sogni account links
+- 📚 Added references to Sogni platform, docs, and SDK packages
+
+### v1.1.6
 - ⚡ Changed default network from "relaxed" to "fast" for quicker generation
 - 📝 Documentation updates
 
@@ -440,7 +442,9 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 - [ControlNet Guide](./CONTROLNET_GUIDE.md) - Complete ControlNet usage guide
 - [Example Workflows](./examples/) - Ready-to-use workflow examples
-- [Sogni AI Documentation](https://sdk-docs.sogni.ai/) - Official SDK docs
+- [Sogni AI](https://www.sogni.ai/) - Platform overview and product updates
+- [Sogni SDK Docs](https://sdk-docs.sogni.ai/) - Official SDK documentation
+- [Sogni Docs](https://docs.sogni.ai/) - Platform guides and API references
 - [Integration Guide](../INTEGRATION_GUIDE.md) - Complete integration guide
 
 ---
