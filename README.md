@@ -4,17 +4,11 @@
 
 Generate AI images using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation.
 
-This node pulls from your personal Sogni account—[sign up for a free account](https://app.sogni.ai/create?code=n8n) to get 50 complimentary Render credits every day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
+This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
 ---
 
 ## 🆕 What's New
-
-### ✨ Full ControlNet Support
-- **15 ControlNet types** supported (canny, scribble, lineart, openpose, depth, and more)
-- Guide image generation with control images
-- Full parameter control (strength, mode, guidance timing)
-- See [ControlNet Guide](./CONTROLNET_GUIDE.md) for details
 
 ### 📥 Automatic Image Download
 - Download generated images as binary data
@@ -29,10 +23,16 @@ This node pulls from your personal Sogni account—[sign up for a free account](
 - Manual override still available
 
 ### ⚙️ Improved Defaults
-- Default network: `relaxed` (more economical)
+- Default network: `fast` (quicker generation)
 - **Timeout defaults by network** when not set: `fast = 60s`, `relaxed = 600s`
 - Default token type: `spark`
 - Download images: enabled by default
+
+### ✨ Full ControlNet Support
+- **15 ControlNet types** supported (canny, scribble, lineart, openpose, depth, and more)
+- Guide image generation with control images
+- Full parameter control (strength, mode, guidance timing)
+- See [ControlNet Guide](./CONTROLNET_GUIDE.md) for details
 
 ---
 
@@ -102,7 +102,7 @@ npm install n8n-nodes-sogni
   "operation": "generate",
   "modelId": "flux1-schnell-fp8",
   "positivePrompt": "A beautiful sunset over mountains",
-  "network": "relaxed",
+  "network": "fast",
   "additionalFields": {
     "negativePrompt": "blurry, low quality",
     "steps": 20,
@@ -121,7 +121,7 @@ npm install n8n-nodes-sogni
   "operation": "generate",
   "modelId": "flux1-schnell-fp8",
   "positivePrompt": "A fantasy castle, magical, glowing",
-  "network": "relaxed",
+  "network": "fast",
   "additionalFields": {
     "enableControlNet": true,
     "controlNetType": "canny",
@@ -399,7 +399,7 @@ const client = new SogniClientWrapper({
 const result = await client.createProject({
   modelId: 'flux1-schnell-fp8',
   positivePrompt: 'A beautiful sunset',
-  network: 'relaxed',
+  network: 'fast',
   tokenType: 'spark',
   waitForCompletion: true,
 });
@@ -411,7 +411,10 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.1.8 (Current)
+### v1.1.9 (Current)
+- 📝 Updated Sogni signup copy and highlighted ControlNet positioning
+
+### v1.1.8
 - 🆕 Refreshed installation instructions and Sogni account links
 - 📚 Added references to Sogni platform, docs, and SDK packages
 
