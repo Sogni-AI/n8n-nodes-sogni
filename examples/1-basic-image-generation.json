@@ -17,10 +17,15 @@
         "positivePrompt": "A beautiful sunset over mountains, vibrant colors, photorealistic",
         "network": "fast",
         "additionalFields": {
-          "steps": 4,
-          "guidance": 3.5,
-          "numberOfImages": 1,
-          "tokenType": "spark"
+          "generationSettings": {
+            "steps": 4,
+            "guidance": 3.5,
+            "numberOfImages": 1
+          },
+          "advanced": {
+            "tokenType": "spark",
+            "timeout": 180000
+          }
         }
       },
       "id": "sogni-generate",
