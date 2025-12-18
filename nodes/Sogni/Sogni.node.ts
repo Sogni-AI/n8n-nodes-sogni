@@ -83,7 +83,7 @@ export class Sogni implements INodeType {
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-    description: 'Generate AI images using Sogni AI Supernet with ControlNet support',
+    description: 'Generate AI images and videos using Sogni AI Supernet with ControlNet support',
     defaults: {
       name: 'Sogni AI',
     },
@@ -103,6 +103,7 @@ export class Sogni implements INodeType {
         noDataExpression: true,
         options: [
           { name: 'Image', value: 'image' },
+          { name: 'Video', value: 'video' },
           { name: 'Model', value: 'model' },
           { name: 'Account', value: 'account' },
         ],
@@ -124,6 +125,26 @@ export class Sogni implements INodeType {
             value: 'generate',
             description: 'Generate AI images',
             action: 'Generate Sogni image',
+          },
+        ],
+        default: 'generate',
+      },
+
+      // Video Operations
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        displayOptions: {
+          show: { resource: ['video'] },
+        },
+        options: [
+          {
+            name: 'Generate',
+            value: 'generate',
+            description: 'Generate AI videos',
+            action: 'Generate Sogni video',
           },
         ],
         default: 'generate',
@@ -175,7 +196,7 @@ export class Sogni implements INodeType {
 
       // ===== Image Generation Parameters =====
 
-      // Model picker with search (loadOptions)
+      // Model picker with search (loadOptions) - Image
       {
         displayName: 'Model Search',
         name: 'modelSearch',
@@ -240,6 +261,75 @@ export class Sogni implements INodeType {
         default: 'fast',
         description:
           'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
+      },
+
+      // ===== Video Generation Parameters =====
+
+      // Model picker with search (loadOptions) - Video
+      {
+        displayName: 'Model Search',
+        name: 'videoModelSearch',
+        type: 'string',
+        placeholder: 'e.g., flux, video, animation',
+        default: '',
+        description:
+          'Type to filter video models by name/tag. The dropdown below refreshes when you edit this field.',
+        displayOptions: {
+          show: { resource: ['video'], operation: ['generate'] },
+        },
+      },
+      {
+        displayName: 'Model',
+        name: 'videoModelId',
+        type: 'options',
+        required: true,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['generate'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getVideoModelOptions',
+          loadOptionsDependsOn: ['videoModelSearch'],
+        },
+        default: '',
+        description:
+          'Choose a video model from the list (recommended), or paste a known model ID into this field.',
+      },
+
+      {
+        displayName: 'Positive Prompt',
+        name: 'videoPositivePrompt',
+        type: 'string',
+        required: true,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['generate'] },
+        },
+        default: '',
+        typeOptions: { rows: 4 },
+        description: 'Text description of the video you want to generate',
+        placeholder: 'A cat playing with a ball, smooth motion, cinematic',
+      },
+      {
+        displayName: 'Network',
+        name: 'videoNetwork',
+        type: 'options',
+        displayOptions: {
+          show: { resource: ['video'], operation: ['generate'] },
+        },
+        options: [
+          {
+            name: 'Fast',
+            value: 'fast',
+            description: 'Faster generation, uses SOGNI/Spark tokens',
+          },
+          {
+            name: 'Relaxed',
+            value: 'relaxed',
+            description: 'Slower but cheaper, uses SOGNI/Spark tokens',
+          },
+        ],
+        default: 'fast',
+        description:
+          'Network type to use. If timeout is left empty, this will imply 120s (fast) or 1200s (relaxed) for video.',
       },
 
       // ===== Regrouped Additional Fields - with backward compatibility =====
@@ -498,6 +588,157 @@ export class Sogni implements INodeType {
         ],
       },
 
+      // ===== Video Additional Fields =====
+      {
+        displayName: 'Additional Fields',
+        name: 'videoAdditionalFields',
+        type: 'fixedCollection',
+        placeholder: 'Add Field Group',
+        default: {},
+        displayOptions: {
+          show: { resource: ['video'], operation: ['generate'] },
+        },
+        options: [
+          {
+            displayName: 'Video Settings',
+            name: 'videoSettings',
+            values: [
+              {
+                displayName: 'Negative Prompt',
+                name: 'negativePrompt',
+                type: 'string',
+                default: '',
+                typeOptions: { rows: 2 },
+                description: 'Description of what to avoid in the video',
+                placeholder: 'blurry, static, glitchy',
+              },
+              {
+                displayName: 'Style Prompt',
+                name: 'stylePrompt',
+                type: 'string',
+                default: '',
+                description: 'Additional style instructions for the video',
+                placeholder: 'cinematic, smooth motion, high quality',
+              },
+              {
+                displayName: 'Number of Videos',
+                name: 'numberOfMedia',
+                type: 'number',
+                default: 1,
+                description: 'How many videos to generate (1-4)',
+                typeOptions: { minValue: 1, maxValue: 4 },
+              },
+              {
+                displayName: 'Frames',
+                name: 'frames',
+                type: 'number',
+                default: 30,
+                description: 'Number of frames in the video (10-120)',
+                typeOptions: { minValue: 10, maxValue: 120 },
+              },
+              {
+                displayName: 'FPS (Frames Per Second)',
+                name: 'fps',
+                type: 'number',
+                default: 30,
+                description: 'Frames per second (10-60)',
+                typeOptions: { minValue: 10, maxValue: 60 },
+              },
+              {
+                displayName: 'Steps',
+                name: 'steps',
+                type: 'number',
+                default: 20,
+                description: 'Number of inference steps (1-100)',
+                typeOptions: { minValue: 1, maxValue: 100 },
+              },
+              {
+                displayName: 'Guidance',
+                name: 'guidance',
+                type: 'number',
+                default: 7.5,
+                description: 'How closely to follow the prompt (0-30)',
+                typeOptions: { minValue: 0, maxValue: 30, numberPrecision: 1 },
+              },
+              {
+                displayName: 'Seed',
+                name: 'seed',
+                type: 'number',
+                default: undefined,
+                description: 'Seed for reproducible results (optional)',
+                typeOptions: { minValue: 0, maxValue: 2147483647 },
+              },
+            ],
+          },
+          {
+            displayName: 'Output',
+            name: 'output',
+            values: [
+              {
+                displayName: 'Download Videos',
+                name: 'downloadVideos',
+                type: 'boolean',
+                default: true,
+                description: 'Whether to download videos as binary data (prevents URL expiry)',
+              },
+              {
+                displayName: 'Output Format',
+                name: 'outputFormat',
+                type: 'options',
+                options: [
+                  { name: 'MP4', value: 'mp4' },
+                  { name: 'WebM', value: 'webm' },
+                  { name: 'GIF', value: 'gif' },
+                ],
+                default: 'mp4',
+                description: 'Video output format',
+              },
+              {
+                displayName: 'Width',
+                name: 'width',
+                type: 'number',
+                default: 512,
+                description: 'Video width in pixels (256-1024)',
+                typeOptions: { minValue: 256, maxValue: 1024 },
+              },
+              {
+                displayName: 'Height',
+                name: 'height',
+                type: 'number',
+                default: 512,
+                description: 'Video height in pixels (256-1024)',
+                typeOptions: { minValue: 256, maxValue: 1024 },
+              },
+            ],
+          },
+          {
+            displayName: 'Advanced',
+            name: 'advanced',
+            values: [
+              {
+                displayName: 'Token Type',
+                name: 'tokenType',
+                type: 'options',
+                options: [
+                  { name: 'Spark', value: 'spark', description: 'Use Spark tokens (cheaper)' },
+                  { name: 'SOGNI', value: 'sogni', description: 'Use SOGNI tokens' },
+                ],
+                default: 'spark',
+                description: 'Which token type to use for generation',
+              },
+              {
+                displayName: 'Timeout (ms)',
+                name: 'timeout',
+                type: 'number',
+                default: undefined,
+                description: 'Max wait time in milliseconds. Leave empty for network-based defaults.',
+                typeOptions: { minValue: 1000, maxValue: 3600000 },
+              },
+            ],
+          },
+        ],
+      },
+
       // ===== Model Get Parameters =====
       {
         displayName: 'Model Search',
@@ -600,6 +841,76 @@ export class Sogni implements INodeType {
               description: model.description || undefined,
             };
           });
+
+          return options;
+        } finally {
+          try {
+            await client.disconnect();
+          } catch {
+            // ignore
+          }
+        }
+      },
+
+      async getVideoModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('sogniApi');
+        // Use stable appId based on username to avoid creating new connections each time
+        const appId =
+          (credentials.appId as string) ||
+          generateStableAppId(credentials.username as string);
+
+        const client = new SogniClientWrapper({
+          username: credentials.username as string,
+          password: credentials.password as string,
+          appId,
+          autoConnect: true,
+          debug: false,
+        });
+
+        try {
+          // Read search text and coerce to string
+          const search = (this.getCurrentNodeParameter('videoModelSearch') as string) || '';
+
+          const models = await client.getAvailableModels({
+            sortByWorkers: true,
+            minWorkers: 0,
+            // Pass both keys; wrapper will ignore unknowns
+            search: search || undefined,
+            filter: search || undefined,
+            limit: 100,
+          } as any);
+
+          // Filter for video models (models that contain 'video', 'vid', 'animation', or 'motion' in their name/id)
+          const videoModels = (models as any[]).filter((model: any) => {
+            const name = (model.name || model.id || '').toLowerCase();
+            return name.includes('video') || name.includes('vid') ||
+                   name.includes('animation') || name.includes('motion') ||
+                   name.includes('animate');
+          });
+
+          const options: INodePropertyOptions[] = videoModels.map((model: any) => {
+            const workers = model.workerCount ?? model.workers ?? 0;
+            const healthy =
+              model.health === 'healthy' ||
+              model.status === 'healthy' ||
+              (typeof model.healthy === 'boolean' ? model.healthy : workers > 0);
+            const recommended = healthy && workers >= 5;
+            const badge = workers ? ` • ${workers} workers` : '';
+            return {
+              name: `${model.name || model.id}${badge}${recommended ? ' (recommended)' : ''}`,
+              value: model.id,
+              description: model.description || undefined,
+            };
+          });
+
+          // If no video models found, add a placeholder
+          if (options.length === 0) {
+            options.push({
+              name: 'No video models available - check back later',
+              value: '',
+              description: 'Video models are being added to the platform',
+            });
+          }
 
           return options;
         } finally {
@@ -732,7 +1043,7 @@ export class Sogni implements INodeType {
             }
 
             // Generate image
-            const result = await client.createProject(projectConfig);
+            const result = await client.createImageProject(projectConfig);
             const r: any = result; // relaxed view for optional fields not declared on the SDK type
 
             // Prepare output data
@@ -829,6 +1140,164 @@ export class Sogni implements INodeType {
             }
 
             returnData.push(outputData);
+          } else if (resource === 'video' && operation === 'generate') {
+            // Video Generation
+            const videoModelId = this.getNodeParameter('videoModelId', i) as string;
+            const videoPositivePrompt = this.getNodeParameter('videoPositivePrompt', i) as string;
+            const videoNetwork = this.getNodeParameter('videoNetwork', i) as 'fast' | 'relaxed';
+
+            // Video additional fields
+            const videoAdditional = (this.getNodeParameter('videoAdditionalFields', i, {}) as any) || {};
+            const videoSettings = (videoAdditional.videoSettings as any) || {};
+            const videoOutput = (videoAdditional.output as any) || {};
+            const videoAdvanced = (videoAdditional.advanced as any) || {};
+
+            // Extract video parameters
+            const negativePrompt = videoSettings.negativePrompt ?? '';
+            const stylePrompt = videoSettings.stylePrompt ?? '';
+            const numberOfMedia = videoSettings.numberOfMedia ?? 1;
+            const frames = videoSettings.frames ?? 30;
+            const fps = videoSettings.fps ?? 30;
+            const steps = videoSettings.steps ?? 20;
+            const guidance = videoSettings.guidance ?? 7.5;
+            const seed = videoSettings.seed;
+
+            const downloadVideos = videoOutput.downloadVideos ?? true;
+            const outputFormat = videoOutput.outputFormat ?? 'mp4';
+            const width = videoOutput.width ?? 512;
+            const height = videoOutput.height ?? 512;
+
+            const tokenType = videoAdvanced.tokenType ?? 'spark';
+            const timeoutInput = videoAdvanced.timeout;
+
+            // Timeout defaults for video (longer than image)
+            const resolvedTimeoutMs =
+              typeof timeoutInput === 'number' && !Number.isNaN(timeoutInput)
+                ? timeoutInput
+                : videoNetwork === 'fast'
+                ? 120_000  // 2 minutes for fast video
+                : 1200_000; // 20 minutes for relaxed video
+
+            // Build video project config
+            const videoProjectConfig: any = {
+              modelId: videoModelId,
+              positivePrompt: videoPositivePrompt,
+              negativePrompt,
+              stylePrompt,
+              frames,
+              fps,
+              steps,
+              guidance,
+              numberOfMedia,
+              network: videoNetwork,
+              tokenType,
+              outputFormat,
+              width,
+              height,
+              seed,
+              waitForCompletion: true,
+              timeout: resolvedTimeoutMs,
+            };
+
+            // Generate video
+            const videoResult = await client.createVideoProject(videoProjectConfig);
+            const vr: any = videoResult;
+
+            // Prepare output data
+            const videoProjectId = vr.projectId ?? vr.project?.id ?? undefined;
+
+            const videoOutputData: INodeExecutionData = {
+              json: {
+                projectId: videoProjectId,
+                modelId: videoModelId,
+                prompt: videoPositivePrompt,
+                videoUrls: vr.videoUrls || [],
+                completed: vr.completed,
+                jobs: Array.isArray(vr.jobs)
+                  ? vr.jobs.map((job: any) => ({
+                      id: job.id,
+                      status: job.status,
+                    }))
+                  : undefined,
+                // Surface returned metadata when available
+                meta: {
+                  network: videoNetwork,
+                  tokenType,
+                  resolved: {
+                    frames,
+                    fps,
+                    steps,
+                    guidance,
+                    numberOfMedia,
+                    timeoutMs: resolvedTimeoutMs,
+                  },
+                  cost: vr.cost ?? vr.costTokens ?? vr.tokensUsed ?? vr.tokenCost ?? undefined,
+                  queuePosition: vr.queuePosition ?? vr.queue?.position ?? vr.position ?? undefined,
+                  latencies: {
+                    queueMs:
+                      vr.queueTimeMs ?? vr.latencies?.queueMs ?? vr.metrics?.queueTimeMs ?? undefined,
+                    generationMs:
+                      vr.generationTimeMs ??
+                      vr.latencies?.generationMs ??
+                      vr.metrics?.generationTimeMs ??
+                      undefined,
+                    totalMs:
+                      vr.totalTimeMs ?? vr.latencies?.totalMs ?? vr.metrics?.totalTimeMs ?? undefined,
+                  },
+                  workerId: vr.workerId ?? vr.worker?.id ?? undefined,
+                  modelVersion: vr.modelVersion ?? vr.model?.version ?? undefined,
+                  raw: vr.meta ?? vr.metadata ?? undefined,
+                },
+              },
+              binary: {},
+            };
+
+            // Download videos using native fetch
+            if (downloadVideos !== false && vr.videoUrls && vr.videoUrls.length > 0) {
+              for (let vidIndex = 0; vidIndex < vr.videoUrls.length; vidIndex++) {
+                const videoUrl = vr.videoUrls[vidIndex];
+
+                try {
+                  let headers: Record<string, string> = {};
+
+                  const resp = await fetch(videoUrl);
+                  if (!resp.ok) {
+                    throw new Error(`Failed to download video: ${resp.status} ${resp.statusText}`);
+                  }
+                  const arrayBuffer = await resp.arrayBuffer();
+                  const bodyBuffer = Buffer.from(arrayBuffer);
+
+                  // normalize fetch headers
+                  headers = {};
+                  resp.headers.forEach((v, k) => {
+                    headers[k.toLowerCase()] = v;
+                  });
+
+                  const headerCt = headers['content-type'] || (headers as any)['Content-Type'];
+                  const mimeType = headerCt || `video/${outputFormat}`;
+                  const headerCd =
+                    headers['content-disposition'] || (headers as any)['Content-Disposition'];
+                  const cdFilename = parseContentDispositionFilename(headerCd);
+
+                  const defaultNameBase = (videoProjectId ?? 'sogni_video') + `_${vidIndex}`;
+                  const filename = cdFilename || `${defaultNameBase}.${outputFormat}`;
+
+                  const binaryPropertyName = vidIndex === 0 ? 'video' : `video_${vidIndex}`;
+
+                  videoOutputData.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
+                    bodyBuffer,
+                    filename,
+                    mimeType,
+                  );
+                } catch (downloadError) {
+                  // If download fails, still include the URL
+                  // eslint-disable-next-line no-console
+                  console.error(`Failed to download video ${vidIndex}:`, downloadError);
+                }
+              }
+            }
+
+            returnData.push(videoOutputData);
           } else if (resource === 'model' && operation === 'getAll') {
             // Get All Models
             const options = this.getNodeParameter('options', i, {}) as any;

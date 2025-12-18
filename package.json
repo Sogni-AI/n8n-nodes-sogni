@@ -1,13 +1,14 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.1.14",
-  "description": "n8n community node for Sogni AI image generation",
+  "version": "1.2.0",
+  "description": "n8n community node for Sogni AI image and video generation",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "sogni",
     "ai",
     "image-generation",
+    "video-generation",
     "stable-diffusion",
     "flux",
     "controlnet",
@@ -35,7 +36,12 @@
     "watch": "tsc --watch",
     "lint": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' 'index.ts'",
     "lintfix": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' 'index.ts' --fix",
-    "prepublishOnly": "npm run build && npm run lint"
+    "prepublishOnly": "npm run build && npm run lint",
+    "test:validation": "npx ts-node test/node-validation.ts",
+    "test:video": "node test/test-video-simple.js",
+    "test:video:minimal": "node test/test-video-minimal.js",
+    "test:video:detailed": "npx ts-node test/test-video-generation.ts",
+    "test:check-models": "node test/check-video-models.js"
   },
   "files": [
     "dist",
@@ -55,12 +61,13 @@
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "dotenv": "^17.2.3",
     "eslint": "^8.0.0",
     "n8n-workflow": "^1.0.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client-wrapper": "^1.0.3"
+    "@sogni-ai/sogni-client-wrapper": "^1.2.0"
   },
   "engines": {
     "node": ">=18.0.0"

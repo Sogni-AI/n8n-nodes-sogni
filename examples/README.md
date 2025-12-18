@@ -67,6 +67,22 @@ Generate an image automatically every day at 9 AM.
 
 ---
 
+### 5. Video Generation
+**File**: `5-video-generation.json`
+
+Generate AI videos with customizable parameters.
+
+**Features:**
+- Video model selection
+- Configurable frames and FPS
+- Multiple output formats (MP4, WebM, GIF)
+- Resolution control
+- Automatic video download
+
+**Use Case**: Animation creation, social media content, video effects
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI

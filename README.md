@@ -1,8 +1,8 @@
 # n8n-nodes-sogni
 
-**Enhanced n8n Community Node for Sogni AI Image Generation**
+**Enhanced n8n Community Node for Sogni AI Image & Video Generation**
 
-Generate AI images using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation.
+Generate AI images and videos using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation and **video generation capabilities**.
 
 This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
@@ -11,6 +11,13 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 ---
 
 ## 🆕 What's New
+
+### 🎬 Video Generation Support (v1.2.0)
+- Generate AI videos with customizable frames, FPS, and resolution
+- Support for MP4, WebM, and GIF output formats
+- Automatic video download as binary data
+- Configurable video parameters (frames, guidance, steps)
+- Dedicated video model selection
 
 ### 📥 Automatic Image Download
 - Download generated images as binary data
@@ -44,6 +51,9 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 #### Image Resource
 - **Generate**: Create AI images with optional ControlNet guidance
+
+#### Video Resource
+- **Generate**: Create AI videos with customizable parameters
 
 #### Model Resource
 - **Get All**: List all available models
@@ -136,6 +146,33 @@ npm install n8n-nodes-sogni
 }
 ```
 
+### Video Generation
+
+```json
+{
+  "resource": "video",
+  "operation": "generate",
+  "videoModelId": "video-model-id",
+  "videoPositivePrompt": "A cat playing with a ball, smooth motion, cinematic",
+  "videoNetwork": "fast",
+  "videoAdditionalFields": {
+    "videoSettings": {
+      "negativePrompt": "blurry, static, glitchy",
+      "frames": 30,
+      "fps": 30,
+      "steps": 20,
+      "guidance": 7.5
+    },
+    "output": {
+      "downloadVideos": true,
+      "outputFormat": "mp4",
+      "width": 512,
+      "height": 512
+    }
+  }
+}
+```
+
 ---
 
 ## ControlNet Types
@@ -204,6 +241,32 @@ See [ControlNet Guide](./CONTROLNET_GUIDE.md) for detailed usage instructions.
 | **Guidance Start** | number | 0 | When to start (0-1) |
 | **Guidance End** | number | 1 | When to end (0-1) |
 
+### Video Generation Parameters
+
+#### Required Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| **Video Model ID** | string | AI model to use for video generation |
+| **Video Positive Prompt** | string | What you want in the video |
+| **Video Network** | options | `fast` or `relaxed` |
+
+#### Optional Video Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| **Negative Prompt** | string | "" | What to avoid in video |
+| **Style Prompt** | string | "" | Video style description |
+| **Number of Videos** | number | 1 | How many videos (1-4) |
+| **Frames** | number | 30 | Number of frames (10-120) |
+| **FPS** | number | 30 | Frames per second (10-60) |
+| **Steps** | number | 20 | Inference steps (1-100) |
+| **Guidance** | number | 7.5 | Prompt adherence (0-30) |
+| **Output Format** | options | mp4 | `mp4`, `webm`, or `gif` |
+| **Download Videos** | boolean | true | Download as binary data |
+| **Width** | number | 512 | Video width (256-1024) |
+| **Height** | number | 512 | Video height (256-1024) |
+| **Timeout** | number | auto | Max wait time (ms) |
+
 ---
 
 ## Example Workflows
@@ -214,15 +277,17 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 2. **Batch Processing** - Generate multiple images
 3. **Dynamic Model Selection** - Auto-select best model
 4. **Scheduled Generation** - Daily automated images
-5. **ControlNet Edge Detection** - Structure-guided generation
-6. **ControlNet Pose Transfer** - Pose-guided generation
+5. **Video Generation** - AI video creation with customizable parameters
+6. **ControlNet Edge Detection** - Structure-guided generation (coming soon)
+7. **ControlNet Pose Transfer** - Pose-guided generation (coming soon)
 
 ---
 
 ## Output
 
-### JSON Output
+### Image Generation Output
 
+#### JSON Output
 ```json
 {
   "projectId": "ABC123...",
@@ -241,17 +306,43 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 }
 ```
 
-### Binary Output (when downloadImages = true)
-
+#### Binary Output (when downloadImages = true)
 - **image**: First generated image
 - **image_1**: Second image (if multiple)
 - **image_2**: Third image (if multiple)
 - etc.
 
+### Video Generation Output
+
+#### JSON Output
+```json
+{
+  "projectId": "VID123...",
+  "modelId": "video-model-id",
+  "prompt": "A cat playing...",
+  "videoUrls": [
+    "https://complete-videos-production.s3-accelerate.amazonaws.com/..."
+  ],
+  "completed": true,
+  "jobs": [
+    {
+      "id": "JOB456...",
+      "status": "completed"
+    }
+  ]
+}
+```
+
+#### Binary Output (when downloadVideos = true)
+- **video**: First generated video
+- **video_1**: Second video (if multiple)
+- **video_2**: Third video (if multiple)
+- etc.
+
 Binary data includes:
-- Proper MIME type (image/png or image/jpeg)
-- Filename: `sogni_[projectId]_[index].[ext]`
-- Full resolution image data
+- Proper MIME type (video/mp4, video/webm, or image/gif)
+- Filename: `sogni_video_[projectId]_[index].[ext]`
+- Full resolution video data
 
 ---
 
@@ -302,9 +393,19 @@ Use "Get All Models" operation to see all available models.
 
 ### 6. Timeout Configuration
 
-- **Fast network**: 60,000ms (1 minute) usually enough
-- **Relaxed network**: 600,000ms (10 minutes) recommended
+- **Image - Fast network**: 60,000ms (1 minute) usually enough
+- **Image - Relaxed network**: 600,000ms (10 minutes) recommended
+- **Video - Fast network**: 120,000ms (2 minutes) minimum
+- **Video - Relaxed network**: 1,200,000ms (20 minutes) recommended
 - Adjust based on complexity and model
+
+### 7. Video Generation Tips
+
+- **Frame Count**: Start with 30 frames for quick tests, increase for longer videos
+- **FPS**: Use 30 fps for smooth motion, 10-15 fps for stylized/animated look
+- **Resolution**: Start with 512x512 for faster generation, increase as needed
+- **Format**: MP4 for compatibility, WebM for web, GIF for small animations
+- **Models**: Look for models with "video", "animation", or "motion" in their names
 
 ---
 
@@ -413,7 +514,15 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.1.9 (Current)
+### v1.2.0 (Current)
+- 🎬 Added full video generation support
+- 📦 Updated @sogni-ai/sogni-client-wrapper to v1.2.0
+- 🎥 Support for MP4, WebM, and GIF video formats
+- ⚙️ Configurable video parameters (frames, FPS, resolution)
+- 📥 Automatic video download as binary data
+- 🔍 Dedicated video model selection and filtering
+
+### v1.1.9
 - 📝 Updated Sogni signup copy and highlighted ControlNet positioning
 
 ### v1.1.8
