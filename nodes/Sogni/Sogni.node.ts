@@ -687,11 +687,9 @@ export class Sogni implements INodeType {
                 type: 'options',
                 options: [
                   { name: 'MP4', value: 'mp4' },
-                  { name: 'WebM', value: 'webm' },
-                  { name: 'GIF', value: 'gif' },
                 ],
                 default: 'mp4',
-                description: 'Video output format',
+                description: 'Video output format (currently only MP4 is supported)',
               },
               {
                 displayName: 'Width',

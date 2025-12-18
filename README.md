@@ -14,7 +14,7 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 ### 🎬 Video Generation Support (v1.2.0)
 - Generate AI videos with customizable frames, FPS, and resolution
-- Support for MP4, WebM, and GIF output formats
+- MP4 video output format
 - Automatic video download as binary data
 - Configurable video parameters (frames, guidance, steps)
 - Dedicated video model selection
@@ -261,7 +261,7 @@ See [ControlNet Guide](./CONTROLNET_GUIDE.md) for detailed usage instructions.
 | **FPS** | number | 30 | Frames per second (10-60) |
 | **Steps** | number | 20 | Inference steps (1-100) |
 | **Guidance** | number | 7.5 | Prompt adherence (0-30) |
-| **Output Format** | options | mp4 | `mp4`, `webm`, or `gif` |
+| **Output Format** | options | mp4 | Currently only `mp4` is supported |
 | **Download Videos** | boolean | true | Download as binary data |
 | **Width** | number | 512 | Video width (256-1024) |
 | **Height** | number | 512 | Video height (256-1024) |
@@ -340,7 +340,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 - etc.
 
 Binary data includes:
-- Proper MIME type (video/mp4, video/webm, or image/gif)
+- Proper MIME type (video/mp4)
 - Filename: `sogni_video_[projectId]_[index].[ext]`
 - Full resolution video data
 
@@ -404,7 +404,7 @@ Use "Get All Models" operation to see all available models.
 - **Frame Count**: Start with 30 frames for quick tests, increase for longer videos
 - **FPS**: Use 30 fps for smooth motion, 10-15 fps for stylized/animated look
 - **Resolution**: Start with 512x512 for faster generation, increase as needed
-- **Format**: MP4 for compatibility, WebM for web, GIF for small animations
+- **Format**: Currently only MP4 format is supported
 - **Models**: Look for models with "video", "animation", or "motion" in their names
 
 ---
@@ -517,7 +517,7 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 ### v1.2.0 (Current)
 - 🎬 Added full video generation support
 - 📦 Updated @sogni-ai/sogni-client-wrapper to v1.2.0
-- 🎥 Support for MP4, WebM, and GIF video formats
+- 🎥 MP4 video format support
 - ⚙️ Configurable video parameters (frames, FPS, resolution)
 - 📥 Automatic video download as binary data
 - 🔍 Dedicated video model selection and filtering
