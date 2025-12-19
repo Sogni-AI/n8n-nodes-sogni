@@ -47,7 +47,7 @@
           "negativePrompt": "blurry, low quality, cartoon",
           "steps": "={{ $json.recommendedSteps }}",
           "guidance": "={{ $json.recommendedGuidance }}",
-          "numberOfImages": 1,
+          "numberOfMedia": 1,
           "tokenType": "spark"
         }
       },

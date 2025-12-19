@@ -8,21 +8,58 @@ import {
   INodePropertyOptions,
 } from 'n8n-workflow';
 
+import { randomUUID } from 'crypto';
+
 import { SogniClientWrapper, SogniError, ControlNetName } from '@sogni-ai/sogni-client-wrapper';
 
 /**
- * Generate a stable appId based on username
- * This ensures we reuse the same connection instead of creating new ones each time
+ * Enable optional AppId debug logging by setting:
+ *
+ *   SOGNI_N8N_DEBUG_APPID=true
+ *
+ * Examples:
+ *   docker-compose.yml:
+ *     environment:
+ *       - SOGNI_N8N_DEBUG_APPID=true
+ *
+ *   shell:
+ *     export SOGNI_N8N_DEBUG_APPID=true
  */
-function generateStableAppId(username: string): string {
-  // Simple hash function to create a deterministic ID from username
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    const char = username.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return `n8n-sogni-${Math.abs(hash)}`;
+function isAppIdDebugEnabled(): boolean {
+  const raw = (process.env.SOGNI_N8N_DEBUG_APPID || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+}
+
+function debugLogAppId(message: string): void {
+  if (!isAppIdDebugEnabled()) return;
+  // eslint-disable-next-line no-console
+  console.log(`[Sogni] ${message}`);
+}
+
+/**
+ * Normalize user-provided appId (credentials field).
+ * Treat empty/whitespace as "unset".
+ */
+function normalizeAppId(appId?: string): string | undefined {
+  if (typeof appId !== 'string') return undefined;
+  const trimmed = appId.trim();
+  return trimmed.length ? trimmed : undefined;
+}
+
+/**
+ * Generate a unique appId for a single client instance.
+ *
+ * IMPORTANT:
+ * Sogni allows only ONE active WebSocket connection per appId. Re-using the same appId across
+ * concurrent n8n executions or editor loadOptions calls can silently close the "other" socket,
+ * resulting in missing jobState/jobProgress/jobResult events.
+ *
+ * Strategy used here:
+ * - execute(): generate ONE appId per node execution (unless the user explicitly provided one)
+ * - loadOptions(): ALWAYS use a dedicated random appId so the editor UI cannot interfere with executions
+ */
+function generateUniqueAppId(prefix: string): string {
+  return `${prefix}-${randomUUID()}`;
 }
 
 /**
@@ -366,7 +403,7 @@ export class Sogni implements INodeType {
               },
               {
                 displayName: 'Number of Images',
-                name: 'numberOfImages',
+                name: 'numberOfMedia',
                 type: 'number',
                 default: 1,
                 description: 'Number of images to generate (1-10)',
@@ -685,9 +722,7 @@ export class Sogni implements INodeType {
                 displayName: 'Output Format',
                 name: 'outputFormat',
                 type: 'options',
-                options: [
-                  { name: 'MP4', value: 'mp4' },
-                ],
+                options: [{ name: 'MP4', value: 'mp4' }],
                 default: 'mp4',
                 description: 'Video output format (currently only MP4 is supported)',
               },
@@ -799,10 +834,11 @@ export class Sogni implements INodeType {
     loadOptions: {
       async getModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
         const credentials = await this.getCredentials('sogniApi');
-        // Use stable appId based on username to avoid creating new connections each time
-        const appId =
-          (credentials.appId as string) ||
-          generateStableAppId(credentials.username as string);
+
+        // IMPORTANT: Use a dedicated unique appId for loadOptions so the editor UI cannot
+        // interfere with any running workflow execution.
+        const appId = generateUniqueAppId('n8n-sogni-loadopts');
+        debugLogAppId(`loadOptions:getModelOptions appId=${appId}`);
 
         const client = new SogniClientWrapper({
           username: credentials.username as string,
@@ -852,10 +888,11 @@ export class Sogni implements INodeType {
 
       async getVideoModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
         const credentials = await this.getCredentials('sogniApi');
-        // Use stable appId based on username to avoid creating new connections each time
-        const appId =
-          (credentials.appId as string) ||
-          generateStableAppId(credentials.username as string);
+
+        // IMPORTANT: Use a dedicated unique appId for loadOptions so the editor UI cannot
+        // interfere with any running workflow execution.
+        const appId = generateUniqueAppId('n8n-sogni-loadopts');
+        debugLogAppId(`loadOptions:getVideoModelOptions appId=${appId}`);
 
         const client = new SogniClientWrapper({
           username: credentials.username as string,
@@ -881,9 +918,13 @@ export class Sogni implements INodeType {
           // Filter for video models (models that contain 'video', 'vid', 'animation', or 'motion' in their name/id)
           const videoModels = (models as any[]).filter((model: any) => {
             const name = (model.name || model.id || '').toLowerCase();
-            return name.includes('video') || name.includes('vid') ||
-                   name.includes('animation') || name.includes('motion') ||
-                   name.includes('animate');
+            return (
+              name.includes('video') ||
+              name.includes('vid') ||
+              name.includes('animation') ||
+              name.includes('motion') ||
+              name.includes('animate')
+            );
           });
 
           const options: INodePropertyOptions[] = videoModels.map((model: any) => {
@@ -929,10 +970,20 @@ export class Sogni implements INodeType {
     // Get credentials
     const credentials = await this.getCredentials('sogniApi');
 
-    // Use stable appId based on username to reuse connections and avoid leaks
-    const appId =
-      (credentials.appId as string) ||
-      generateStableAppId(credentials.username as string);
+    /**
+     * App ID strategy:
+     * - If the user explicitly set an appId in credentials, honor it exactly.
+     *   (Note: They must ensure they don't run multiple concurrent executions with the same appId.)
+     * - Otherwise, generate a UNIQUE appId per node execution to avoid WebSocket collisions.
+     */
+    const userProvidedAppId = normalizeAppId(credentials.appId as string | undefined);
+    const appId = userProvidedAppId ?? generateUniqueAppId('n8n-sogni');
+
+    debugLogAppId(
+      `execute node="${this.getNode().name}" appId=${appId} source=${
+        userProvidedAppId ? 'credentials' : 'generated'
+      }`,
+    );
 
     // Create Sogni client (reuse single connection across all input items)
     const client = new SogniClientWrapper({
@@ -963,11 +1014,11 @@ export class Sogni implements INodeType {
             const legacy = additional;
 
             // --- network: support both top-level and legacy-in-additionalFields ---
-            const networkTop = (this.getNodeParameter('network', i) as 'fast' | 'relaxed' | undefined);
+            const networkTop = this.getNodeParameter('network', i) as 'fast' | 'relaxed' | undefined;
             const networkLegacy = legacy.network as 'fast' | 'relaxed' | undefined;
-            const network = (networkTop ?? networkLegacy ?? 'fast');
+            const network = networkTop ?? networkLegacy ?? 'fast';
 
-            const numberOfImages = gen.numberOfImages ?? legacy.numberOfImages ?? 1;
+            const numberOfMedia = gen.numberOfMedia ?? legacy.numberOfMedia ?? legacy.numberOfImages ?? 1;
             const steps = gen.steps ?? legacy.steps ?? 20;
             const guidance = gen.guidance ?? legacy.guidance ?? 7.5;
             const negativePrompt = gen.negativePrompt ?? legacy.negativePrompt ?? '';
@@ -999,7 +1050,7 @@ export class Sogni implements INodeType {
               stylePrompt,
               steps,
               guidance,
-              numberOfImages,
+              numberOfMedia,
               network,
               tokenType,
               outputFormat,
@@ -1067,7 +1118,7 @@ export class Sogni implements INodeType {
                   resolved: {
                     steps,
                     guidance,
-                    numberOfImages,
+                    numberOfMedia,
                     timeoutMs: resolvedTimeoutMs,
                   },
                   cost: r.cost ?? r.costTokens ?? r.tokensUsed ?? r.tokenCost ?? undefined,
@@ -1173,7 +1224,7 @@ export class Sogni implements INodeType {
               typeof timeoutInput === 'number' && !Number.isNaN(timeoutInput)
                 ? timeoutInput
                 : videoNetwork === 'fast'
-                ? 120_000  // 2 minutes for fast video
+                ? 120_000 // 2 minutes for fast video
                 : 1200_000; // 20 minutes for relaxed video
 
             // Build video project config

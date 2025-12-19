@@ -1,11 +1,11 @@
 {
-  "name": "Video Generation Example",
+  "name": "Basic Video Generation with Sogni",
   "nodes": [
     {
       "parameters": {},
       "id": "start-node",
-      "name": "Start",
-      "type": "n8n-nodes-base.start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [250, 300]
     },
@@ -13,33 +13,33 @@
       "parameters": {
         "resource": "video",
         "operation": "generate",
-        "videoModelId": "video-model-id",
-        "videoPositivePrompt": "A majestic eagle soaring through clouds, cinematic motion, smooth flight, golden hour lighting",
+        "videoModelId": "wan_v2.2-14b-fp8_t2v_lightx2v",
+        "videoPositivePrompt": "A serene waterfall flowing through a lush green forest",
         "videoNetwork": "fast",
         "videoAdditionalFields": {
           "videoSettings": {
-            "negativePrompt": "static, glitchy, blurry, low quality",
-            "stylePrompt": "cinematic, professional, smooth motion",
+            "negativePrompt": "",
+            "stylePrompt": "",
             "numberOfMedia": 1,
-            "frames": 30,
-            "fps": 30,
-            "steps": 20,
+            "frames": 81,
+            "fps": 16,
+            "steps": 4,
             "guidance": 7.5
           },
           "output": {
             "downloadVideos": true,
             "outputFormat": "mp4",
-            "width": 512,
-            "height": 512
+            "width": 640,
+            "height": 640
           },
           "advanced": {
             "tokenType": "spark",
-            "timeout": 120000
+            "timeout": 300000
           }
         }
       },
       "id": "sogni-video-node",
-      "name": "Sogni Video Generation",
+      "name": "Generate Video",
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [450, 300],
@@ -49,36 +49,14 @@
           "name": "Sogni AI Account"
         }
       }
-    },
-    {
-      "parameters": {
-        "mode": "passThrough",
-        "output": "allInputData"
-      },
-      "id": "merge-node",
-      "name": "Merge",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 2,
-      "position": [650, 300]
     }
   ],
   "connections": {
-    "Start": {
+    "When clicking 'Test workflow'": {
       "main": [
         [
           {
-            "node": "Sogni Video Generation",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sogni Video Generation": {
-      "main": [
-        [
-          {
-            "node": "Merge",
+            "node": "Generate Video",
             "type": "main",
             "index": 0
           }
@@ -86,16 +64,13 @@
       ]
     }
   },
-  "settings": {},
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
   "staticData": null,
-  "tags": [
-    {
-      "id": "1",
-      "name": "sogni-ai"
-    },
-    {
-      "id": "2",
-      "name": "video-generation"
-    }
-  ]
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-26T00:00:00.000Z",
+  "versionId": "1"
 }

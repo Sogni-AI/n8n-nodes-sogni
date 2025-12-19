@@ -85,7 +85,7 @@
         "additionalFields": {
           "steps": 4,
           "guidance": 3.5,
-          "numberOfImages": 1,
+          "numberOfMedia": 1,
           "tokenType": "spark"
         }
       },

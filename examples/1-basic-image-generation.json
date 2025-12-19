@@ -20,7 +20,7 @@
           "generationSettings": {
             "steps": 4,
             "guidance": 3.5,
-            "numberOfImages": 1
+            "numberOfMedia": 1
           },
           "advanced": {
             "tokenType": "spark",
