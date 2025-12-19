@@ -4,11 +4,19 @@
 
 ### Problem: "Operation timed out after 60000ms"
 
-If you're getting timeout errors when generating images, especially with the message "Operation timed out after 60000ms", this is likely due to n8n's execution timeout settings rather than the Sogni node itself.
+If you're getting timeout errors when generating images, especially with the message "Operation timed out after 60000ms", this was caused by a bug in the alpha version of the Sogni SDK where `waitForCompletion()` would hang.
 
-### Solution 1: Increase n8n Execution Timeout
+### Solution: Update to Latest Version
 
-n8n has a global execution timeout that limits how long any workflow can run. By default, this is often set to 60 seconds (60000ms).
+This issue has been fixed in version 1.2.3 of n8n-nodes-sogni, which uses the fixed sogni-client-wrapper@1.2.1.
+
+```bash
+npm install n8n-nodes-sogni@latest
+```
+
+### Alternative Solution: Increase n8n Execution Timeout
+
+If you're still experiencing timeouts with complex generations, you may need to increase n8n's execution timeout:
 
 **For Self-Hosted n8n:**
 

@@ -935,13 +935,12 @@ export class Sogni implements INodeType {
       generateStableAppId(credentials.username as string);
 
     // Create Sogni client (reuse single connection across all input items)
-    console.log(`[Sogni] Initializing client with appId: ${appId}`);
     const client = new SogniClientWrapper({
       username: credentials.username as string,
       password: credentials.password as string,
       appId,
       autoConnect: true,
-      debug: true,  // Enable debug mode to see what's happening
+      debug: false,
     });
 
     try {
@@ -1042,7 +1041,6 @@ export class Sogni implements INodeType {
             }
 
             // Generate image
-            console.log(`[Sogni] Starting image generation with timeout: ${resolvedTimeoutMs}ms`);
             const result = await client.createImageProject(projectConfig);
             const r: any = result; // relaxed view for optional fields not declared on the SDK type
 
