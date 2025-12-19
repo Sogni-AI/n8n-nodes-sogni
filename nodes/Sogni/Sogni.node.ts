@@ -37,6 +37,112 @@ function debugLogAppId(message: string): void {
 }
 
 /**
+ * Promise helper: ensures we don't hang forever during disconnect/cleanup.
+ */
+async function promiseWithTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Best-effort disconnect that guarantees we don't leak WebSocket connections.
+ *
+ * Why:
+ * - In n8n, nodes can run many times in the same process (worker/main).
+ * - If a websocket isn't closed in every run (including error paths),
+ *   connections accumulate and can eventually degrade/kill the worker.
+ */
+async function safeDisconnect(
+  client: any,
+  context: { label: string; appId?: string; timeoutMs?: number },
+): Promise<void> {
+  if (!client) return;
+
+  const label = context.label;
+  const appId = context.appId;
+  const timeoutMs = typeof context.timeoutMs === 'number' && context.timeoutMs > 0 ? context.timeoutMs : 5000;
+  const tag = `${label}${appId ? ` appId=${appId}` : ''}`;
+
+  // 1) Try wrapper disconnect (graceful) but do not allow it to hang forever.
+  try {
+    if (typeof client.disconnect === 'function') {
+      debugLogAppId(`disconnect:start (${tag})`);
+      await promiseWithTimeout(Promise.resolve(client.disconnect()), timeoutMs, `disconnect (${tag})`);
+      debugLogAppId(`disconnect:done (${tag})`);
+    }
+  } catch (err) {
+    debugLogAppId(
+      `disconnect:error (${tag}) ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // 2) Hard-close underlying socket if the wrapper didn't (or if it left it half-open).
+  // We don't depend on any one field name — we probe common ones.
+  try {
+    const ws =
+      client.socket ??
+      client.ws ??
+      client.websocket ??
+      client._socket ??
+      client._ws ??
+      client._websocket ??
+      client.client?.socket ??
+      client.client?.ws ??
+      client.client?.websocket;
+
+    if (!ws) return;
+
+    // Some implementations expose readyState (0 connecting, 1 open, 2 closing, 3 closed)
+    const readyState: number | undefined = typeof ws.readyState === 'number' ? ws.readyState : undefined;
+    const isClosed = readyState === 3;
+
+    if (!isClosed) {
+      try {
+        if (typeof ws.close === 'function') {
+          // Try graceful close first
+          ws.close();
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        // If ws is from the `ws` package, terminate is the most reliable "hard stop"
+        if (typeof ws.terminate === 'function') {
+          ws.terminate();
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Prevent listener accumulation if anything holds references
+    try {
+      if (typeof ws.removeAllListeners === 'function') {
+        ws.removeAllListeners();
+      }
+    } catch {
+      // ignore
+    }
+
+    debugLogAppId(`disconnect:hard-close attempted (${tag})`);
+  } catch (err) {
+    debugLogAppId(
+      `disconnect:hard-close error (${tag}) ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
  * Normalize user-provided appId (credentials field).
  * Treat empty/whitespace as "unset".
  */
@@ -878,11 +984,11 @@ export class Sogni implements INodeType {
 
           return options;
         } finally {
-          try {
-            await client.disconnect();
-          } catch {
-            // ignore
-          }
+          await safeDisconnect(client, {
+            label: 'loadOptions:getModelOptions',
+            appId,
+            timeoutMs: 2000,
+          });
         }
       },
 
@@ -953,11 +1059,11 @@ export class Sogni implements INodeType {
 
           return options;
         } finally {
-          try {
-            await client.disconnect();
-          } catch {
-            // ignore
-          }
+          await safeDisconnect(client, {
+            label: 'loadOptions:getVideoModelOptions',
+            appId,
+            timeoutMs: 2000,
+          });
         }
       },
     },
@@ -1404,8 +1510,8 @@ export class Sogni implements INodeType {
 
       return [returnData];
     } finally {
-      // Always disconnect
-      await client.disconnect();
+      // Always disconnect (best-effort; includes hard-close fallback)
+      await safeDisconnect(client, { label: 'execute', appId, timeoutMs: 5000 });
     }
   }
 }
