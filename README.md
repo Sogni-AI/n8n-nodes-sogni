@@ -106,6 +106,8 @@ npm install n8n-nodes-sogni
 
 ## Basic Usage
 
+> 💡 **Tip:** You can import example workflows directly into n8n! Create a new workflow, click the **⋮** (three dots) in the top right corner, select **Import from File...**, and choose a sample workflow from the [./examples](./examples/) folder.
+
 ### Simple Image Generation
 
 ```json
@@ -152,22 +154,25 @@ npm install n8n-nodes-sogni
 {
   "resource": "video",
   "operation": "generate",
-  "videoModelId": "video-model-id",
-  "videoPositivePrompt": "A cat playing with a ball, smooth motion, cinematic",
+  "videoModelId": "wan_v2.2-14b-fp8_t2v_lightx2v",
+  "videoPositivePrompt": "A serene waterfall flowing through a lush green forest",
   "videoNetwork": "fast",
   "videoAdditionalFields": {
     "videoSettings": {
-      "negativePrompt": "blurry, static, glitchy",
-      "frames": 30,
-      "fps": 30,
-      "steps": 20,
+      "frames": 81,
+      "fps": 16,
+      "steps": 4,
       "guidance": 7.5
     },
     "output": {
       "downloadVideos": true,
       "outputFormat": "mp4",
-      "width": 512,
-      "height": 512
+      "width": 640,
+      "height": 640
+    },
+    "advanced": {
+      "tokenType": "spark",
+      "timeout": 300000
     }
   }
 }
