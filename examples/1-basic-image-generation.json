@@ -2,12 +2,26 @@
   "name": "Basic Image Generation with Sogni",
   "nodes": [
     {
+      "parameters": {
+        "content": "## Basic Image Generation\n\nGenerate a single AI image with Sogni using the Flux Schnell model.\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni**\n   - Settings \u2192 Community Nodes \u2192 Install \u2192 `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Click Test Workflow**\n   - Click the \"Test workflow\" button to generate an image\n\n### Customization:\n\n- **Prompt**: Change `positivePrompt` in the Generate node\n- **Model**: Change `modelId` (use Get All Models to see options)\n- **Quality**: Increase `steps` for better quality (slower)\n- **Guidance**: Higher values follow prompt more strictly\n- **Network**: Use `relaxed` for cheaper Spark tokens",
+        "height": 480,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-140, 100],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
       "parameters": {},
       "id": "start-node",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 300],
+      "notes": "Click to manually trigger the workflow"
     },
     {
       "parameters": {
@@ -33,12 +47,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [450, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Generates image using Sogni AI with Flux Schnell model"
     }
   ],
   "connections": {
@@ -61,6 +70,7 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2025-10-26T00:00:00.000Z",
-  "versionId": "1"
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
 }

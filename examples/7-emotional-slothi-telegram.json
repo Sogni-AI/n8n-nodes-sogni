@@ -1,0 +1,244 @@
+{
+  "name": "Emotional Slothi - Telegram Price Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Emotional Slothi - Telegram Price Bot\n\nThis workflow posts an AI-edited image of a Slothicorn holding a sign with the current SOGNI token price to Telegram. The Slothicorn's expression changes based on the 24h price change!\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni** (v1.3.1+)\n   - Settings → Community Nodes → Install → `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Add Telegram Credentials**\n   - Create a bot via @BotFather\n   - Add credentials in n8n: Telegram API\n\n4. **Update Chat ID**\n   - Change `chatId` in \"Send to Telegram\" node to your chat/channel ID\n\n### Customization:\n\n- **Reference Image**: Change `referenceImageUrl` in the Code node\n- **Token Symbol**: Change the API URL in \"Fetch Price\" node\n- **Schedule**: Adjust the Schedule Trigger interval\n- **Emotions**: Modify thresholds in the Code node",
+        "height": 580,
+        "width": 360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        -380
+      ],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "### Emotion Levels\n\n**Positive:**\n- ≥3%: Ecstatic\n- ≥2%: Extremely Happy\n- ≥1%: Very Happy\n- >0%: Slightly Happy\n\n**Negative:**\n- >-1%: Slightly Unhappy\n- >-3%: Very Unhappy\n- ≤-3%: Crying",
+        "height": 240,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -420
+      ],
+      "id": "sticky-emotions",
+      "name": "Emotion Reference"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        -240
+      ],
+      "id": "17c55701-75b4-4b74-8d1a-098fb6ffbd0f",
+      "name": "Test Manually",
+      "notes": "Click to test the workflow manually",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 60
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        -80
+      ],
+      "id": "ff390990-8269-479c-9566-0721674df47e",
+      "name": "Every Hour",
+      "notes": "Runs automatically every 60 minutes"
+    },
+    {
+      "parameters": {
+        "url": "https://mobile-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=sogni",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -180,
+        -160
+      ],
+      "id": "c88c8f47-b791-4ffa-b3fc-c452fd848d26",
+      "name": "Fetch SOGNI Price",
+      "notes": "Gets current price from CoinMarketCap"
+    },
+    {
+      "parameters": {
+        "jsCode": "let priceChangePercent = $input.first().json.data.SOGNI[0].quote.USD.percent_change_24h;\nlet priceChangeNum = parseFloat(priceChangePercent);\npriceChangePercent = priceChangePercent.toFixed(2);\nlet price = $input.first().json.data.SOGNI[0].quote.USD.price;\nprice = Number(price.toFixed(6));\n\n// Determine emotion based on price change\nlet emotion = '';\nlet emotionDescription = '';\n\nif (priceChangeNum >= 3) {\n  emotion = 'ecstatic';\n  emotionDescription = 'ecstatic and overjoyed, jumping with joy, huge smile, sparkles around him';\n} else if (priceChangeNum >= 2) {\n  emotion = 'extremely happy';\n  emotionDescription = 'extremely happy, big beaming smile, eyes sparkling with delight';\n} else if (priceChangeNum >= 1) {\n  emotion = 'very happy';\n  emotionDescription = 'very happy, wide smile, cheerful expression';\n} else if (priceChangeNum > 0) {\n  emotion = 'slightly happy';\n  emotionDescription = 'slightly happy, gentle smile, content expression';\n} else if (priceChangeNum > -1) {\n  emotion = 'slightly unhappy';\n  emotionDescription = 'slightly unhappy, small frown, a bit sad';\n} else if (priceChangeNum > -3) {\n  emotion = 'very unhappy';\n  emotionDescription = 'very unhappy, big frown, tears forming in eyes, looking dejected';\n} else {\n  emotion = 'crying';\n  emotionDescription = 'crying on the floor, tears streaming down face, devastated, sobbing';\n}\n\n// Format the edit prompt for Qwen Image Edit\nlet editPrompt = `Replace the text on the white card/sign. Write \"${price}\" as the main large text, and below it in smaller text write \"${priceChangePercent}%\". Make the pink slothicorn look ${emotionDescription}. Keep the character style the same but change the facial expression to match the emotion.`;\n\n// Default reference image URL (can be overridden)\nlet referenceImageUrl = 'https://mauv.is/up/2026_01_27_slothi.jpeg';\n\nreturn {\n  editPrompt,\n  price,\n  priceChangePercent,\n  emotion,\n  referenceImageUrl\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        -160
+      ],
+      "id": "7d052bdb-19a9-47f8-bedb-2560dee28628",
+      "name": "Build Edit Prompt",
+      "notes": "Creates prompt with price, % change, and emotion"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.referenceImageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        260,
+        -160
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Download Slothi Image",
+      "notes": "Downloads the reference image to edit"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "imageEditModelId": "qwen_image_edit_2511_fp8_lightning",
+        "imageEditPrompt": "={{ $json.editPrompt }}",
+        "contextImage1Property": "data",
+        "imageEditNetwork": "fast",
+        "imageEditAdditionalFields": {
+          "output": {
+            "downloadImages": true,
+            "outputFormat": "png"
+          },
+          "advanced": {
+            "tokenType": "spark"
+          }
+        }
+      },
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -160
+      ],
+      "id": "99cad0b8-d330-4d56-8b27-3762d8fb222e",
+      "name": "Edit with Qwen AI",
+      "notes": "Uses Sogni's Qwen model to edit text & expression"
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "YOUR_CHAT_ID_HERE",
+        "binaryData": true,
+        "binaryPropertyName": "image",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -160
+      ],
+      "id": "b7f2a48a-2323-488a-bc4a-a3daec7c8e78",
+      "name": "Send to Telegram",
+      "notes": "Posts the edited image to your Telegram chat"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Test Manually": {
+      "main": [
+        [
+          {
+            "node": "Fetch SOGNI Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Fetch SOGNI Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch SOGNI Price": {
+      "main": [
+        [
+          {
+            "node": "Build Edit Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Edit Prompt": {
+      "main": [
+        [
+          {
+            "node": "Download Slothi Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Slothi Image": {
+      "main": [
+        [
+          {
+            "node": "Edit with Qwen AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit with Qwen AI": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

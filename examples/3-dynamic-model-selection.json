@@ -2,12 +2,39 @@
   "name": "Dynamic Model Selection - Choose Best Available Model",
   "nodes": [
     {
+      "parameters": {
+        "content": "## Dynamic Model Selection\n\nAutomatically select the best available model based on worker count for fastest generation.\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni**\n   - Settings \u2192 Community Nodes \u2192 Install \u2192 `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Click Test Workflow**\n   - Fetches all models, picks best, generates image\n\n### Customization:\n\n- **Selection Logic**: Modify Code node to pick by different criteria\n- **Prompt**: Change the prompt in Generate node\n- **Fallback**: Add error handling for no workers available",
+        "height": 420,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-140, 100],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "### Selection Logic\n\nSorts models by `workerCount`\nand picks the one with most\nactive workers for fastest\ngeneration times.\n\nAlso uses model's recommended\n`steps` and `guidance` settings.",
+        "height": 180,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [600, 100],
+      "id": "sticky-logic-reference",
+      "name": "Logic Reference"
+    },
+    {
       "parameters": {},
       "id": "start-node",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 300],
+      "notes": "Click to start dynamic model selection"
     },
     {
       "parameters": {
@@ -19,12 +46,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [450, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Fetches list of all available Sogni models"
     },
     {
       "parameters": {
@@ -34,7 +56,8 @@
       "name": "Select Best Model",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [650, 300]
+      "position": [650, 300],
+      "notes": "Picks model with most workers and gets its recommended settings"
     },
     {
       "parameters": {
@@ -56,12 +79,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [850, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Generates image using dynamically selected model and settings"
     }
   ],
   "connections": {
@@ -106,6 +124,7 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2025-10-26T00:00:00.000Z",
-  "versionId": "1"
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
 }

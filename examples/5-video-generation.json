@@ -2,12 +2,39 @@
   "name": "Basic Video Generation with Sogni",
   "nodes": [
     {
+      "parameters": {
+        "content": "## Video Generation\n\nGenerate AI videos with the WAN video model.\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni**\n   - Settings \u2192 Community Nodes \u2192 Install \u2192 `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Click Test Workflow**\n   - Video generation takes longer than images\n\n### Customization:\n\n- **Prompt**: Change `videoPositivePrompt`\n- **Duration**: Adjust `frames` (81 = ~5 sec at 16fps)\n- **FPS**: Change playback speed (default: 16)\n- **Format**: mp4, webm, or gif\n- **Resolution**: Adjust width/height (max 1280)",
+        "height": 460,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-140, 100],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "### Video Settings\n\n- **Frames**: 81 (~5 seconds)\n- **FPS**: 16\n- **Steps**: 4 (quality)\n- **Guidance**: 7.5\n- **Size**: 640x640\n- **Format**: MP4\n\nMore frames = longer video\nbut more tokens used.",
+        "height": 220,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, 100],
+      "id": "sticky-settings-reference",
+      "name": "Settings Reference"
+    },
+    {
       "parameters": {},
       "id": "start-node",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 300],
+      "notes": "Click to start video generation"
     },
     {
       "parameters": {
@@ -43,12 +70,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [450, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Generates video using WAN model - takes 1-5 minutes"
     }
   ],
   "connections": {
@@ -71,6 +93,7 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2025-10-26T00:00:00.000Z",
-  "versionId": "1"
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
 }

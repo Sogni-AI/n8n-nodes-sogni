@@ -12,7 +12,10 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 ## 🆕 What's New
 
-### 🖼️ Image Edit with Qwen (v1.3.0)
+### 🖼️ Live Image Edit with Qwen (v1.3.0)
+
+<img src="https://raw.githubusercontent.com/Sogni-Ai/n8n-nodes-sogni/main/img/live-image-edit-demo.jpg" alt="Live Image Edit demo showing dynamic text changes on a character" width="800">
+
 - Edit images using Qwen Image Edit models with multi-reference context images
 - Up to 3 context images for sophisticated editing
 - Two model variants:

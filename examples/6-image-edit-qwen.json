@@ -2,12 +2,39 @@
   "name": "Image Edit with Qwen",
   "nodes": [
     {
+      "parameters": {
+        "content": "## Image Edit with Qwen\n\nEdit existing images using Sogni's Qwen AI model to modify backgrounds, subjects, or add elements.\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni** (v1.3.1+)\n   - Settings \u2192 Community Nodes \u2192 Install \u2192 `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Set Image Path**\n   - Update `filePath` in \"Read Context Image\" node\n\n4. **Click Test Workflow**\n   - Edits the image based on your prompt\n\n### Customization:\n\n- **Edit Prompt**: Describe what to change\n- **Negative Prompt**: What to avoid\n- **Guidance**: Higher = follows prompt more strictly\n- **Output**: PNG or JPG format",
+        "height": 500,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-140, 80],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "### Example Edit Prompts\n\n- Change background to beach\n- Add sunglasses to person\n- Make it nighttime\n- Add snow to the scene\n- Change hair color to red\n\nBe specific about what\nto keep unchanged!",
+        "height": 220,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [600, 80],
+      "id": "sticky-prompts-reference",
+      "name": "Prompts Reference"
+    },
+    {
       "parameters": {},
       "id": "start-node",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 300],
+      "notes": "Click to start image editing"
     },
     {
       "parameters": {
@@ -17,7 +44,8 @@
       "name": "Read Context Image",
       "type": "n8n-nodes-base.readBinaryFile",
       "typeVersion": 1,
-      "position": [450, 300]
+      "position": [450, 300],
+      "notes": "Update filePath to your image location"
     },
     {
       "parameters": {
@@ -48,12 +76,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [650, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Uses Qwen model to edit image based on prompt"
     }
   ],
   "connections": {
@@ -87,6 +110,7 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-01-27T00:00:00.000Z",
-  "versionId": "1"
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
 }

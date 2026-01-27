@@ -83,6 +83,47 @@ Generate AI videos with customizable parameters.
 
 ---
 
+### 6. Image Edit with Qwen
+**File**: `6-image-edit-qwen.json`
+
+Edit existing images using Sogni's Qwen AI model to modify backgrounds, subjects, or add elements.
+
+**Features:**
+- Read local image file as context
+- Qwen Image Edit model for intelligent edits
+- Configurable negative prompts
+- Guidance scale control
+- Automatic image download
+
+**Use Case**: Background replacement, image retouching, creative edits
+
+---
+
+### 7. Emotional Slothi - Telegram Price Bot
+**File**: `7-emotional-slothi-telegram.json`
+
+Post AI-edited images to Telegram with dynamic text and emotional expressions based on real-time cryptocurrency price data.
+
+**Features:**
+- Fetches live SOGNI token price from CoinMarketCap
+- Qwen Image Edit to update text on reference image
+- Dynamic emotional expressions based on 24h price change
+- Scheduled hourly execution
+- Telegram integration for automatic posting
+
+**Emotion Mapping:**
+- ≥3%: Ecstatic (jumping with joy)
+- ≥2%: Extremely Happy
+- ≥1%: Very Happy
+- \>0%: Slightly Happy
+- \>-1%: Slightly Unhappy
+- \>-3%: Very Unhappy
+- ≤-3%: Crying
+
+**Use Case**: Crypto price bots, social media automation, dynamic content creation
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI

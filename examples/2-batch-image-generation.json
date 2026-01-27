@@ -2,12 +2,26 @@
   "name": "Batch Image Generation with Multiple Prompts",
   "nodes": [
     {
+      "parameters": {
+        "content": "## Batch Image Generation\n\nGenerate multiple images from a list of prompts in a single workflow run.\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni**\n   - Settings \u2192 Community Nodes \u2192 Install \u2192 `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Customize Prompts**\n   - Edit the prompt array in \"Create Prompt List\" node\n\n4. **Click Test Workflow**\n   - Generates one image per prompt\n\n### Customization:\n\n- **Prompts**: Add/remove prompts in the Code node\n- **Model**: Change `modelId` in Generate Images node\n- **Seed**: Uses random seed for variety (or set fixed)\n- **Parallel**: n8n processes items in sequence by default",
+        "height": 460,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-140, 100],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
       "parameters": {},
       "id": "start-node",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 300],
+      "notes": "Click to start batch generation"
     },
     {
       "parameters": {
@@ -17,7 +31,8 @@
       "name": "Create Prompt List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 300]
+      "position": [450, 300],
+      "notes": "Define your list of prompts here - add or remove as needed"
     },
     {
       "parameters": {
@@ -30,7 +45,8 @@
       "name": "Split Into Items",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [650, 300]
+      "position": [650, 300],
+      "notes": "Splits array into individual items for processing"
     },
     {
       "parameters": {
@@ -52,12 +68,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [850, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Generates image for each prompt with random seed"
     },
     {
       "parameters": {
@@ -67,7 +78,8 @@
       "name": "Aggregate Results",
       "type": "n8n-nodes-base.aggregate",
       "typeVersion": 1,
-      "position": [1050, 300]
+      "position": [1050, 300],
+      "notes": "Combines all generated images into a single output"
     }
   ],
   "connections": {
@@ -123,6 +135,7 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2025-10-26T00:00:00.000Z",
-  "versionId": "1"
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
 }

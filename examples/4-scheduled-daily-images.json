@@ -3,6 +3,32 @@
   "nodes": [
     {
       "parameters": {
+        "content": "## Scheduled Daily Images\n\nAutomatically generate an image every day at 9 AM with random prompts.\n\n### Setup Steps:\n\n1. **Install n8n-nodes-sogni**\n   - Settings \u2192 Community Nodes \u2192 Install \u2192 `n8n-nodes-sogni`\n\n2. **Add Sogni Credentials**\n   - Create account at https://app.sogni.ai\n   - Add credentials in n8n: Sogni AI API\n\n3. **Activate Workflow**\n   - Toggle workflow to Active for scheduled runs\n\n### Customization:\n\n- **Schedule**: Change cron in trigger (default: 9 AM daily)\n- **Prompts**: Edit array in \"Prepare Daily Data\" node\n- **Token Check**: Adjust threshold in \"Has Tokens?\" node\n- **Output**: Add nodes to save/send the image",
+        "height": 440,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-140, 80],
+      "id": "sticky-setup-instructions",
+      "name": "Setup Instructions"
+    },
+    {
+      "parameters": {
+        "content": "### Random Prompts\n\n- zen garden\n- vibrant sunset\n- cozy coffee shop\n- starry night sky\n- blooming flower garden\n\nAdd more prompts in the\n\"Prepare Daily Data\" node!",
+        "height": 200,
+        "width": 200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [400, 80],
+      "id": "sticky-prompts-reference",
+      "name": "Prompts Reference"
+    },
+    {
+      "parameters": {
         "rule": {
           "interval": [
             {
@@ -16,7 +42,8 @@
       "name": "Every Day at 9 AM",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [250, 300]
+      "position": [250, 300],
+      "notes": "Runs daily at 9 AM (cron: 0 9 * * *)"
     },
     {
       "parameters": {
@@ -38,7 +65,8 @@
       "name": "Prepare Daily Data",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3,
-      "position": [450, 300]
+      "position": [450, 300],
+      "notes": "Sets date and picks random prompt from array"
     },
     {
       "parameters": {
@@ -50,12 +78,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [650, 300],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Gets current Spark/SOGNI token balance"
     },
     {
       "parameters": {
@@ -73,7 +96,8 @@
       "name": "Has Tokens?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [850, 300]
+      "position": [850, 300],
+      "notes": "Routes based on whether Spark tokens are available"
     },
     {
       "parameters": {
@@ -94,12 +118,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [1050, 200],
-      "credentials": {
-        "sogniApi": {
-          "id": "1",
-          "name": "Sogni AI Account"
-        }
-      }
+      "notes": "Generates image with the random daily prompt"
     },
     {
       "parameters": {
@@ -111,19 +130,21 @@
       "name": "Format Notification",
       "type": "n8n-nodes-base.markdown",
       "typeVersion": 1,
-      "position": [1250, 200]
+      "position": [1250, 200],
+      "notes": "Formats output with image details"
     },
     {
       "parameters": {
-        "content": "⚠️ **Insufficient Tokens**\n\nCannot generate daily image. Please add more Spark tokens to your Sogni account.",
-        "html": "<p>⚠️ <strong>Insufficient Tokens</strong></p>\n<p>Cannot generate daily image. Please add more Spark tokens to your Sogni account.</p>",
+        "content": "## Insufficient Tokens\n\nCannot generate daily image. Please add more Spark tokens to your Sogni account.",
+        "html": "<p><strong>Insufficient Tokens</strong></p>\n<p>Cannot generate daily image. Please add more Spark tokens to your Sogni account.</p>",
         "options": {}
       },
       "id": "no-tokens-message",
       "name": "No Tokens Message",
       "type": "n8n-nodes-base.markdown",
       "typeVersion": 1,
-      "position": [1050, 400]
+      "position": [1050, 400],
+      "notes": "Error message when no tokens available"
     }
   ],
   "connections": {
@@ -197,6 +218,7 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2025-10-26T00:00:00.000Z",
-  "versionId": "1"
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
 }
