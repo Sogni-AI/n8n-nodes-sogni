@@ -1,0 +1,92 @@
+{
+  "name": "Image Edit with Qwen",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "filePath": "/path/to/your/image.png"
+      },
+      "id": "read-binary-file",
+      "name": "Read Context Image",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "imageEditModelId": "qwen_image_edit_2511_fp8_lightning",
+        "imageEditPrompt": "Change the background to a beautiful sunset beach, keep the main subject unchanged",
+        "contextImage1Property": "data",
+        "imageEditNetwork": "fast",
+        "imageEditAdditionalFields": {
+          "generationSettings": {
+            "negativePrompt": "blurry, distorted, low quality",
+            "numberOfMedia": 1,
+            "guidance": 7.5
+          },
+          "output": {
+            "downloadImages": true,
+            "outputFormat": "png"
+          },
+          "advanced": {
+            "tokenType": "spark",
+            "timeout": 180000
+          }
+        }
+      },
+      "id": "sogni-edit",
+      "name": "Edit Image with Qwen",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "sogniApi": {
+          "id": "1",
+          "name": "Sogni AI Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Read Context Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Context Image": {
+      "main": [
+        [
+          {
+            "node": "Edit Image with Qwen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-27T00:00:00.000Z",
+  "versionId": "1"
+}

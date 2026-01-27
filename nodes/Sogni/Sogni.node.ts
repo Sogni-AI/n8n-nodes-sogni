@@ -269,6 +269,12 @@ export class Sogni implements INodeType {
             description: 'Generate AI images',
             action: 'Generate Sogni image',
           },
+          {
+            name: 'Edit',
+            value: 'edit',
+            description: 'Edit images using Qwen Image Edit models with context images',
+            action: 'Edit image with Qwen',
+          },
         ],
         default: 'generate',
       },
@@ -404,6 +410,256 @@ export class Sogni implements INodeType {
         default: 'fast',
         description:
           'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
+      },
+
+      // ===== Image Edit Parameters =====
+
+      // Model picker with search (loadOptions) - Image Edit
+      {
+        displayName: 'Model Search',
+        name: 'imageEditModelSearch',
+        type: 'string',
+        placeholder: 'e.g., qwen, edit',
+        default: '',
+        description:
+          'Type to filter Qwen Image Edit models by name. The dropdown below refreshes when you edit this field.',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+      },
+      {
+        displayName: 'Model',
+        name: 'imageEditModelId',
+        type: 'options',
+        required: true,
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getImageEditModelOptions',
+          loadOptionsDependsOn: ['imageEditModelSearch'],
+        },
+        default: '',
+        description:
+          'Choose a Qwen Image Edit model. Standard model (qwen_image_edit_2511_fp8) works best with 20 steps, Lightning model works best with 4 steps.',
+      },
+      {
+        displayName: 'Edit Prompt',
+        name: 'imageEditPrompt',
+        type: 'string',
+        required: true,
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        default: '',
+        typeOptions: { rows: 4 },
+        description: 'Text description of the edit you want to apply to the context images',
+        placeholder: 'Change the background to a beach sunset, make the sky orange',
+      },
+      {
+        displayName: 'Context Image 1 (Binary Property)',
+        name: 'contextImage1Property',
+        type: 'string',
+        required: true,
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        default: 'data',
+        description: 'Name of the binary property containing the first context image (required)',
+        placeholder: 'data',
+      },
+      {
+        displayName: 'Context Image 2 (Binary Property)',
+        name: 'contextImage2Property',
+        type: 'string',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        default: '',
+        description: 'Name of the binary property containing the second context image (optional)',
+        placeholder: 'image2',
+      },
+      {
+        displayName: 'Context Image 3 (Binary Property)',
+        name: 'contextImage3Property',
+        type: 'string',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        default: '',
+        description: 'Name of the binary property containing the third context image (optional)',
+        placeholder: 'image3',
+      },
+      {
+        displayName: 'Network',
+        name: 'imageEditNetwork',
+        type: 'options',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        options: [
+          {
+            name: 'Fast',
+            value: 'fast',
+            description: 'Faster generation, uses SOGNI/Spark tokens',
+          },
+          {
+            name: 'Relaxed',
+            value: 'relaxed',
+            description: 'Slower but cheaper, uses SOGNI/Spark tokens',
+          },
+        ],
+        default: 'fast',
+        description:
+          'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
+      },
+
+      // Image Edit Additional Fields
+      {
+        displayName: 'Additional Fields',
+        name: 'imageEditAdditionalFields',
+        type: 'fixedCollection',
+        placeholder: 'Add Field Group',
+        default: {},
+        displayOptions: {
+          show: { resource: ['image'], operation: ['edit'] },
+        },
+        options: [
+          {
+            displayName: 'Generation Settings',
+            name: 'generationSettings',
+            values: [
+              {
+                displayName: 'Negative Prompt',
+                name: 'negativePrompt',
+                type: 'string',
+                default: '',
+                typeOptions: { rows: 2 },
+                description: "Text description of what you don't want to see in the result",
+                placeholder: 'blurry, low quality, distorted',
+              },
+              {
+                displayName: 'Style Prompt',
+                name: 'stylePrompt',
+                type: 'string',
+                default: '',
+                description: 'Style description for the edited image',
+                placeholder: 'photorealistic, cinematic lighting',
+              },
+              {
+                displayName: 'Number of Images',
+                name: 'numberOfMedia',
+                type: 'number',
+                default: 1,
+                description: 'Number of edited images to generate (1-10)',
+                typeOptions: { minValue: 1, maxValue: 10 },
+              },
+              {
+                displayName: 'Steps',
+                name: 'steps',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'Number of inference steps. Leave empty for auto-detection (20 for standard model, 4 for lightning model).',
+                typeOptions: { minValue: 1, maxValue: 100 },
+              },
+              {
+                displayName: 'Guidance',
+                name: 'guidance',
+                type: 'number',
+                default: 7.5,
+                description: 'How closely to follow the prompt. 7.5 is optimal for most cases.',
+                typeOptions: { minValue: 0, maxValue: 30, numberPrecision: 1 },
+              },
+              {
+                displayName: 'Seed',
+                name: 'seed',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Random seed for reproducibility. Leave empty for random.',
+                placeholder: '12345',
+              },
+            ],
+          },
+          {
+            displayName: 'Output',
+            name: 'output',
+            values: [
+              {
+                displayName: 'Download Images',
+                name: 'downloadImages',
+                type: 'boolean',
+                default: true,
+                description:
+                  'Whether to download images as binary data (recommended to avoid 24h URL expiry)',
+              },
+              {
+                displayName: 'Output Format',
+                name: 'outputFormat',
+                type: 'options',
+                options: [
+                  { name: 'PNG', value: 'png' },
+                  { name: 'JPG', value: 'jpg' },
+                ],
+                default: 'png',
+                description: 'Output image format',
+              },
+              {
+                displayName: 'Size Preset',
+                name: 'sizePreset',
+                type: 'string',
+                default: '',
+                description:
+                  'Size preset ID (e.g., "square_hd", "portrait_4_7"). Leave empty for default.',
+                placeholder: 'square_hd',
+              },
+              {
+                displayName: 'Custom Width',
+                name: 'width',
+                type: 'number',
+                default: 1024,
+                description:
+                  'Custom width in pixels (256-2048). Only used if Size Preset is "custom".',
+                typeOptions: { minValue: 256, maxValue: 2048 },
+              },
+              {
+                displayName: 'Custom Height',
+                name: 'height',
+                type: 'number',
+                default: 1024,
+                description:
+                  'Custom height in pixels (256-2048). Only used if Size Preset is "custom".',
+                typeOptions: { minValue: 256, maxValue: 2048 },
+              },
+            ],
+          },
+          {
+            displayName: 'Advanced',
+            name: 'advanced',
+            values: [
+              {
+                displayName: 'Token Type',
+                name: 'tokenType',
+                type: 'options',
+                options: [
+                  { name: 'Spark', value: 'spark' },
+                  { name: 'SOGNI', value: 'sogni' },
+                ],
+                default: 'spark',
+                description: 'Token type to use for payment',
+              },
+              {
+                displayName: 'Timeout (ms)',
+                name: 'timeout',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'Maximum time to wait for image edit in milliseconds. If left empty, defaults to 60,000 for fast or 600,000 for relaxed network.',
+                typeOptions: { minValue: 30000 },
+              },
+            ],
+          },
+        ],
       },
 
       // ===== Video Generation Parameters =====
@@ -1066,6 +1322,85 @@ export class Sogni implements INodeType {
           });
         }
       },
+
+      async getImageEditModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('sogniApi');
+
+        // IMPORTANT: Use a dedicated unique appId for loadOptions so the editor UI cannot
+        // interfere with any running workflow execution.
+        const appId = generateUniqueAppId('n8n-sogni-loadopts');
+        debugLogAppId(`loadOptions:getImageEditModelOptions appId=${appId}`);
+
+        const client = new SogniClientWrapper({
+          username: credentials.username as string,
+          password: credentials.password as string,
+          appId,
+          autoConnect: true,
+          debug: false,
+        });
+
+        try {
+          // Read search text and coerce to string
+          const search = (this.getCurrentNodeParameter('imageEditModelSearch') as string) || '';
+
+          const models = await client.getAvailableModels({
+            sortByWorkers: true,
+            minWorkers: 0,
+            search: search || undefined,
+            filter: search || undefined,
+            limit: 100,
+          } as any);
+
+          // Filter for Qwen Image Edit models only
+          const imageEditModels = (models as any[]).filter((model: any) => {
+            const modelId = (model.id || '').toLowerCase();
+            const name = (model.name || model.id || '').toLowerCase();
+            // Match Qwen image edit models
+            return (
+              modelId.includes('qwen') && modelId.includes('image_edit') ||
+              name.includes('qwen') && name.includes('image edit')
+            );
+          });
+
+          const options: INodePropertyOptions[] = imageEditModels.map((model: any) => {
+            const workers = model.workerCount ?? model.workers ?? 0;
+            const healthy =
+              model.health === 'healthy' ||
+              model.status === 'healthy' ||
+              (typeof model.healthy === 'boolean' ? model.healthy : workers > 0);
+            const recommended = healthy && workers >= 5;
+            const badge = workers ? ` • ${workers} workers` : '';
+
+            // Add step recommendation based on model type
+            const modelId = (model.id || '').toLowerCase();
+            const isLightning = modelId.includes('lightning');
+            const stepRecommendation = isLightning ? ' (4 steps recommended)' : ' (20 steps recommended)';
+
+            return {
+              name: `${model.name || model.id}${badge}${stepRecommendation}${recommended ? ' ★' : ''}`,
+              value: model.id,
+              description: model.description || `Qwen Image Edit model${isLightning ? ' - Fast lightning variant' : ''}`,
+            };
+          });
+
+          // If no Qwen image edit models found, add a placeholder
+          if (options.length === 0) {
+            options.push({
+              name: 'No Qwen Image Edit models available - check back later',
+              value: '',
+              description: 'Qwen Image Edit models are being added to the platform',
+            });
+          }
+
+          return options;
+        } finally {
+          await safeDisconnect(client, {
+            label: 'loadOptions:getImageEditModelOptions',
+            appId,
+            timeoutMs: 2000,
+          });
+        }
+      },
     },
   };
 
@@ -1295,6 +1630,200 @@ export class Sogni implements INodeType {
             }
 
             returnData.push(outputData);
+          } else if (resource === 'image' && operation === 'edit') {
+            // Image Edit with Qwen
+            const modelId = this.getNodeParameter('imageEditModelId', i) as string;
+            const editPrompt = this.getNodeParameter('imageEditPrompt', i) as string;
+            const contextImage1Property = this.getNodeParameter('contextImage1Property', i) as string;
+            const contextImage2Property = this.getNodeParameter('contextImage2Property', i, '') as string;
+            const contextImage3Property = this.getNodeParameter('contextImage3Property', i, '') as string;
+            const network = this.getNodeParameter('imageEditNetwork', i) as 'fast' | 'relaxed';
+
+            // Image edit additional fields
+            const additional = (this.getNodeParameter('imageEditAdditionalFields', i, {}) as any) || {};
+            const gen = (additional.generationSettings as any) || {};
+            const out = (additional.output as any) || {};
+            const adv = (additional.advanced as any) || {};
+
+            const negativePrompt = gen.negativePrompt ?? '';
+            const stylePrompt = gen.stylePrompt ?? '';
+            const numberOfMedia = gen.numberOfMedia ?? 1;
+            const stepsInput = gen.steps;
+            const guidance = gen.guidance ?? 7.5;
+            const seed = gen.seed;
+
+            const downloadImages = out.downloadImages ?? true;
+            const outputFormat = out.outputFormat ?? 'png';
+            const sizePreset = out.sizePreset;
+            const width = out.width;
+            const height = out.height;
+
+            const tokenType = adv.tokenType ?? 'spark';
+            const timeoutInput = adv.timeout;
+
+            // Auto-detect steps from model if not provided
+            const isLightningModel = modelId.toLowerCase().includes('lightning');
+            const steps = typeof stepsInput === 'number' && !Number.isNaN(stepsInput)
+              ? stepsInput
+              : isLightningModel ? 4 : 20;
+
+            // Timeout defaults by network if user left it empty
+            const resolvedTimeoutMs =
+              typeof timeoutInput === 'number' && !Number.isNaN(timeoutInput)
+                ? timeoutInput
+                : network === 'fast'
+                ? 60_000
+                : 600_000;
+
+            // Collect context images (1 required, 2-3 optional)
+            const contextImages: Buffer[] = [];
+
+            // Context image 1 (required)
+            const binaryData1 = items[i].binary?.[contextImage1Property];
+            if (!binaryData1) {
+              throw new NodeOperationError(
+                this.getNode(),
+                `No binary data found in property "${contextImage1Property}". Please provide a context image.`,
+                { itemIndex: i },
+              );
+            }
+            contextImages.push(await this.helpers.getBinaryDataBuffer(i, contextImage1Property));
+
+            // Context image 2 (optional)
+            if (contextImage2Property && contextImage2Property.trim()) {
+              const binaryData2 = items[i].binary?.[contextImage2Property];
+              if (binaryData2) {
+                contextImages.push(await this.helpers.getBinaryDataBuffer(i, contextImage2Property));
+              }
+            }
+
+            // Context image 3 (optional)
+            if (contextImage3Property && contextImage3Property.trim()) {
+              const binaryData3 = items[i].binary?.[contextImage3Property];
+              if (binaryData3) {
+                contextImages.push(await this.helpers.getBinaryDataBuffer(i, contextImage3Property));
+              }
+            }
+
+            // Build image edit project config
+            const editProjectConfig: any = {
+              modelId,
+              positivePrompt: editPrompt,
+              negativePrompt,
+              stylePrompt,
+              steps,
+              guidance,
+              numberOfMedia,
+              network,
+              tokenType,
+              outputFormat,
+              sizePreset,
+              width,
+              height,
+              seed,
+              contextImages,
+              waitForCompletion: true,
+              timeout: resolvedTimeoutMs,
+            };
+
+            // Call the image edit API
+            const result = await client.createImageEditProject(editProjectConfig);
+            const r: any = result;
+
+            // Prepare output data
+            const projectId = r.projectId ?? r.project?.id ?? undefined;
+
+            const editOutputData: INodeExecutionData = {
+              json: {
+                projectId,
+                modelId,
+                prompt: editPrompt,
+                imageUrls: r.imageUrls || [],
+                completed: r.completed,
+                contextImagesCount: contextImages.length,
+                jobs: Array.isArray(r.jobs)
+                  ? r.jobs.map((job: any) => ({
+                      id: job.id,
+                      status: job.status,
+                    }))
+                  : undefined,
+                meta: {
+                  network,
+                  tokenType,
+                  resolved: {
+                    steps,
+                    guidance,
+                    numberOfMedia,
+                    timeoutMs: resolvedTimeoutMs,
+                  },
+                  cost: r.cost ?? r.costTokens ?? r.tokensUsed ?? r.tokenCost ?? undefined,
+                  queuePosition: r.queuePosition ?? r.queue?.position ?? r.position ?? undefined,
+                  latencies: {
+                    queueMs:
+                      r.queueTimeMs ?? r.latencies?.queueMs ?? r.metrics?.queueTimeMs ?? undefined,
+                    generationMs:
+                      r.generationTimeMs ??
+                      r.latencies?.generationMs ??
+                      r.metrics?.generationTimeMs ??
+                      undefined,
+                    totalMs:
+                      r.totalTimeMs ?? r.latencies?.totalMs ?? r.metrics?.totalTimeMs ?? undefined,
+                  },
+                  workerId: r.workerId ?? r.worker?.id ?? undefined,
+                  modelVersion: r.modelVersion ?? r.model?.version ?? undefined,
+                  raw: r.meta ?? r.metadata ?? undefined,
+                },
+              },
+              binary: {},
+            };
+
+            // Download images using native fetch
+            if (downloadImages !== false && r.imageUrls && r.imageUrls.length > 0) {
+              for (let imgIndex = 0; imgIndex < r.imageUrls.length; imgIndex++) {
+                const imageUrl = r.imageUrls[imgIndex];
+
+                try {
+                  let headers: Record<string, string> = {};
+
+                  const resp = await fetch(imageUrl);
+                  if (!resp.ok) {
+                    throw new Error(`Failed to download image: ${resp.status} ${resp.statusText}`);
+                  }
+                  const arrayBuffer = await resp.arrayBuffer();
+                  const bodyBuffer = Buffer.from(arrayBuffer);
+
+                  // normalize fetch headers
+                  headers = {};
+                  resp.headers.forEach((v, k) => {
+                    headers[k.toLowerCase()] = v;
+                  });
+
+                  const headerCt = headers['content-type'] || (headers as any)['Content-Type'];
+                  const mimeType = headerCt || sniffMimeType(bodyBuffer) || 'application/octet-stream';
+                  const headerCd =
+                    headers['content-disposition'] || (headers as any)['Content-Disposition'];
+                  const cdFilename = parseContentDispositionFilename(headerCd);
+                  const guessedExt = extensionFromMime(mimeType);
+
+                  const defaultNameBase = (projectId ?? 'sogni_edit') + `_${imgIndex}`;
+                  const filename = cdFilename || `${defaultNameBase}.${guessedExt || 'bin'}`;
+
+                  const binaryPropertyName = imgIndex === 0 ? 'image' : `image_${imgIndex}`;
+
+                  editOutputData.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
+                    bodyBuffer,
+                    filename,
+                    mimeType,
+                  );
+                } catch (downloadError) {
+                  // If download fails, still include the URL
+                  // eslint-disable-next-line no-console
+                  console.error(`Failed to download edited image ${imgIndex}:`, downloadError);
+                }
+              }
+            }
+
+            returnData.push(editOutputData);
           } else if (resource === 'video' && operation === 'generate') {
             // Video Generation
             const videoModelId = this.getNodeParameter('videoModelId', i) as string;

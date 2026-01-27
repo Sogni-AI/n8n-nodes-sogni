@@ -222,12 +222,12 @@ async function runTests() {
   })();
 
   // Test 24: Additional fields collection
-  await test('Should have additionalFields collection', () => {
+  await test('Should have additionalFields fixedCollection', () => {
     const node = new Sogni();
     const additionalProp = node.description.properties.find(p => p.name === 'additionalFields');
     if (!additionalProp) throw new Error('AdditionalFields not found');
-    if (additionalProp.type !== 'collection') {
-      throw new Error('AdditionalFields should be collection type');
+    if (additionalProp.type !== 'fixedCollection') {
+      throw new Error('AdditionalFields should be fixedCollection type');
     }
   })();
 
@@ -238,6 +238,62 @@ async function runTests() {
     if (!networkProp) throw new Error('Network parameter not found');
     if (networkProp.type !== 'options') {
       throw new Error('Network should be options type');
+    }
+  })();
+
+  // Test 26: Image Edit operation exists
+  await test('Should have edit operation for image resource', () => {
+    const node = new Sogni();
+    const operationProps = node.description.properties.filter(p => p.name === 'operation');
+    const imageOperationProp = operationProps.find(p =>
+      p.displayOptions?.show?.resource?.includes('image')
+    );
+    if (!imageOperationProp || !imageOperationProp.options) {
+      throw new Error('Image operation property not found');
+    }
+    const editOperation = imageOperationProp.options.find((o: any) => o.value === 'edit');
+    if (!editOperation) throw new Error('Edit operation not found for image resource');
+  })();
+
+  // Test 27: Image Edit Model ID parameter
+  await test('Should have imageEditModelId parameter for image edit', () => {
+    const node = new Sogni();
+    const modelIdProp = node.description.properties.find(
+      p => p.name === 'imageEditModelId' && p.displayOptions?.show?.operation?.includes('edit')
+    );
+    if (!modelIdProp) throw new Error('imageEditModelId parameter not found for image edit');
+    if (!modelIdProp.required) throw new Error('imageEditModelId should be required');
+  })();
+
+  // Test 28: Context Image 1 parameter is required
+  await test('Should have contextImage1Property parameter for image edit', () => {
+    const node = new Sogni();
+    const contextProp = node.description.properties.find(
+      p => p.name === 'contextImage1Property' && p.displayOptions?.show?.operation?.includes('edit')
+    );
+    if (!contextProp) throw new Error('contextImage1Property parameter not found for image edit');
+    if (!contextProp.required) throw new Error('contextImage1Property should be required');
+  })();
+
+  // Test 29: Image Edit Prompt parameter
+  await test('Should have imageEditPrompt parameter for image edit', () => {
+    const node = new Sogni();
+    const promptProp = node.description.properties.find(
+      p => p.name === 'imageEditPrompt' && p.displayOptions?.show?.operation?.includes('edit')
+    );
+    if (!promptProp) throw new Error('imageEditPrompt parameter not found for image edit');
+    if (!promptProp.required) throw new Error('imageEditPrompt should be required');
+  })();
+
+  // Test 30: Image Edit Additional Fields
+  await test('Should have imageEditAdditionalFields collection', () => {
+    const node = new Sogni();
+    const additionalProp = node.description.properties.find(
+      p => p.name === 'imageEditAdditionalFields'
+    );
+    if (!additionalProp) throw new Error('imageEditAdditionalFields not found');
+    if (additionalProp.type !== 'fixedCollection') {
+      throw new Error('imageEditAdditionalFields should be fixedCollection type');
     }
   })();
 

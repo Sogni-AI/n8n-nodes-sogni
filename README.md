@@ -12,6 +12,15 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 ## 🆕 What's New
 
+### 🖼️ Image Edit with Qwen (v1.3.0)
+- Edit images using Qwen Image Edit models with multi-reference context images
+- Up to 3 context images for sophisticated editing
+- Two model variants:
+  - **Standard model** (`qwen_image_edit_2511_fp8`) - 20 steps recommended for quality
+  - **Lightning model** (`qwen_image_edit_2511_fp8_lightning`) - 4 steps for fast results
+- Auto-detection of optimal steps based on model selection
+- Full integration with existing output and download features
+
 ### 🎬 Video Generation Support (v1.2.0)
 - Generate AI videos with customizable frames, FPS, and resolution
 - MP4 video output format
@@ -51,6 +60,7 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 #### Image Resource
 - **Generate**: Create AI images with optional ControlNet guidance
+- **Edit**: Edit images using Qwen Image Edit models with context images
 
 #### Video Resource
 - **Generate**: Create AI videos with customizable parameters
@@ -178,6 +188,32 @@ npm install n8n-nodes-sogni
 }
 ```
 
+### Image Edit with Qwen
+
+```json
+{
+  "resource": "image",
+  "operation": "edit",
+  "imageEditModelId": "qwen_image_edit_2511_fp8_lightning",
+  "imageEditPrompt": "Change the background to a beautiful sunset beach",
+  "contextImage1Property": "data",
+  "imageEditNetwork": "fast",
+  "imageEditAdditionalFields": {
+    "generationSettings": {
+      "negativePrompt": "blurry, distorted",
+      "numberOfMedia": 1
+    },
+    "output": {
+      "downloadImages": true,
+      "outputFormat": "png"
+    },
+    "advanced": {
+      "tokenType": "spark"
+    }
+  }
+}
+```
+
 ---
 
 ## ControlNet Types
@@ -272,6 +308,39 @@ See [ControlNet Guide](./CONTROLNET_GUIDE.md) for detailed usage instructions.
 | **Height** | number | 512 | Video height (256-1024) |
 | **Timeout** | number | auto | Max wait time (ms) |
 
+### Image Edit Parameters (Qwen)
+
+#### Required Parameters
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| **Image Edit Model ID** | string | Qwen Image Edit model to use |
+| **Edit Prompt** | string | Description of the edit to apply |
+| **Context Image 1** | string | Binary property name for first context image (required) |
+| **Network** | options | `fast` or `relaxed` |
+
+#### Optional Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| **Context Image 2** | string | "" | Binary property for second context image |
+| **Context Image 3** | string | "" | Binary property for third context image |
+| **Negative Prompt** | string | "" | What to avoid in result |
+| **Style Prompt** | string | "" | Style description |
+| **Number of Images** | number | 1 | How many images (1-10) |
+| **Steps** | number | auto | Inference steps (auto: 20 for standard, 4 for lightning) |
+| **Guidance** | number | 7.5 | Prompt adherence (0-30) |
+| **Download Images** | boolean | true | Download as binary data |
+| **Output Format** | options | png | `png` or `jpg` |
+| **Token Type** | options | spark | `spark` or `sogni` |
+| **Timeout** | number | auto | Max wait time (ms) |
+
+#### Qwen Image Edit Models
+
+| Model ID | Description | Recommended Steps |
+|----------|-------------|-------------------|
+| `qwen_image_edit_2511_fp8` | Standard quality model | 20 steps |
+| `qwen_image_edit_2511_fp8_lightning` | Fast lightning model | 4 steps |
+
 ---
 
 ## Example Workflows
@@ -283,8 +352,9 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 3. **Dynamic Model Selection** - Auto-select best model
 4. **Scheduled Generation** - Daily automated images
 5. **Video Generation** - AI video creation with customizable parameters
-6. **ControlNet Edge Detection** - Structure-guided generation (coming soon)
-7. **ControlNet Pose Transfer** - Pose-guided generation (coming soon)
+6. **Image Edit with Qwen** - Edit images using context-aware Qwen models
+7. **ControlNet Edge Detection** - Structure-guided generation (coming soon)
+8. **ControlNet Pose Transfer** - Pose-guided generation (coming soon)
 
 ---
 
@@ -519,7 +589,13 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.2.0 (Current)
+### v1.3.0 (Current)
+- 🖼️ Added Qwen Image Edit support with multi-reference context images
+- 📦 Updated @sogni-ai/sogni-client-wrapper to v1.4.0
+- ⚡ Auto-detection of optimal steps based on model (20 for standard, 4 for lightning)
+- 🎯 Up to 3 context images for sophisticated multi-reference editing
+
+### v1.2.0
 - 🎬 Added full video generation support
 - 📦 Updated @sogni-ai/sogni-client-wrapper to v1.2.0
 - 🎥 MP4 video format support
