@@ -2,7 +2,7 @@
 
 **Enhanced n8n Community Node for Sogni AI Image & Video Generation**
 
-Generate AI images and videos using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation and **video generation capabilities**.
+Generate AI images and videos using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation, **video generation capabilities**, and **Qwen Image Edit** for multi-reference image editing.
 
 This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
@@ -419,6 +419,39 @@ Binary data includes:
 - Filename: `sogni_video_[projectId]_[index].[ext]`
 - Full resolution video data
 
+### Image Edit Output
+
+#### JSON Output
+```json
+{
+  "projectId": "EDIT123...",
+  "modelId": "qwen_image_edit_2511_fp8_lightning",
+  "prompt": "Change the background to a sunset beach",
+  "imageUrls": [
+    "https://complete-images-production.s3-accelerate.amazonaws.com/..."
+  ],
+  "completed": true,
+  "contextImagesCount": 1,
+  "jobs": [
+    {
+      "id": "JOB789...",
+      "status": "completed"
+    }
+  ]
+}
+```
+
+#### Binary Output (when downloadImages = true)
+- **image**: First edited image
+- **image_1**: Second image (if multiple)
+- **image_2**: Third image (if multiple)
+- etc.
+
+Binary data includes:
+- Proper MIME type (image/png or image/jpeg)
+- Filename: `sogni_edit_[projectId]_[index].[ext]`
+- Full resolution edited image
+
 ---
 
 ## Tips & Best Practices
@@ -482,6 +515,14 @@ Use "Get All Models" operation to see all available models.
 - **Format**: Currently only MP4 format is supported
 - **Models**: Look for models with "video", "animation", or "motion" in their names
 
+### 8. Image Edit Tips (Qwen)
+
+- **Model Selection**: Use `lightning` variant for fast results (4 steps), standard for quality (20 steps)
+- **Context Images**: Provide 1-3 reference images that inform the edit
+- **Edit Prompts**: Be specific about what to change (e.g., "change background to beach" vs "make it better")
+- **Multiple References**: Use 2-3 context images for complex edits like style transfer or object compositing
+- **Steps**: Leave empty for auto-detection based on model, or override for fine control
+
 ---
 
 ## Troubleshooting
@@ -514,6 +555,22 @@ Use "Get All Models" operation to see all available models.
 - Check `downloadImages` is enabled
 - Verify network connectivity
 - Check n8n logs for download errors
+
+### "No binary data found" (Image Edit)
+
+**Solution**:
+1. Ensure previous node outputs binary data with the correct property name
+2. Check `contextImage1Property` matches your binary property (default: `data`)
+3. Use "View" in n8n to inspect binary data from previous node
+4. For multiple context images, verify each property name is correct
+
+### Image Edit Results Unexpected
+
+**Solution**:
+- Use more specific edit prompts describing exactly what to change
+- Try the standard model (`qwen_image_edit_2511_fp8`) for better quality
+- Adjust guidance value (higher = more adherence to prompt)
+- Provide additional context images for complex edits
 
 ---
 
@@ -589,7 +646,11 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.3.0 (Current)
+### v1.3.1 (Current)
+- 📚 Enhanced README documentation for Image Edit feature
+- 📝 Added Image Edit output section, tips, and troubleshooting
+
+### v1.3.0
 - 🖼️ Added Qwen Image Edit support with multi-reference context images
 - 📦 Updated @sogni-ai/sogni-client-wrapper to v1.4.0
 - ⚡ Auto-detection of optimal steps based on model (20 for standard, 4 for lightning)
@@ -669,4 +730,4 @@ Built with:
 
 ---
 
-**Ready to generate amazing AI images with ControlNet in your n8n workflows!** 🎨✨
+**Ready to generate and edit amazing AI images in your n8n workflows!** 🎨✨
