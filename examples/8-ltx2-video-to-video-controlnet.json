@@ -1,0 +1,133 @@
+{
+  "name": "LTX-2 Video-to-Video ControlNet",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## LTX-2 Video-to-Video (v2v) with ControlNet\n\nUse an input video to drive an LTX-2 generation workflow.\n\n### Setup Steps:\n\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Update `filePath` in \"Read Source Video\"\n4. Run the workflow\n\n### Notes:\n- This uses `ltx2-19b-fp8_v2v_distilled`\n- Set frames to an `8n+1` value (e.g. 113)\n- `referenceVideoProperty` is required for v2v",
+        "height": 420,
+        "width": 360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-220, 80],
+      "id": "sticky-ltx2-setup",
+      "name": "LTX-2 Setup"
+    },
+    {
+      "parameters": {
+        "content": "### Workflow Controls\n\n- Video ControlNet: `canny`\n- Control strength: `0.8`\n- Trim end frame: `true`\n- FPS: `24`\n- Frames: `113`\n\nFor pose-driven v2v, switch\nVideo ControlNet Type to `pose`\nand add a reference image.",
+        "height": 300,
+        "width": 250,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [670, 80],
+      "id": "sticky-ltx2-controls",
+      "name": "Controls"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [140, 300],
+      "notes": "Manual test trigger"
+    },
+    {
+      "parameters": {
+        "filePath": "/path/to/your/source-video.mp4"
+      },
+      "id": "read-source-video",
+      "name": "Read Source Video",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [350, 300],
+      "notes": "Set this to a local source video path"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "generate",
+        "videoModelId": "ltx2-19b-fp8_v2v_distilled",
+        "videoPositivePrompt": "Cinematic motion, stable composition, richly detailed textures",
+        "videoNetwork": "fast",
+        "videoAdditionalFields": {
+          "videoSettings": {
+            "negativePrompt": "blurry, jittery, low quality artifacts",
+            "numberOfMedia": 1,
+            "frames": 113,
+            "duration": 5,
+            "fps": 24,
+            "steps": 20,
+            "guidance": 3.5
+          },
+          "inputs": {
+            "referenceVideoProperty": "data"
+          },
+          "workflowControls": {
+            "enableVideoControlNet": true,
+            "videoControlNetType": "canny",
+            "videoControlNetStrength": 0.8,
+            "trimEndFrame": true,
+            "firstFrameStrength": 0.6,
+            "lastFrameStrength": 0.6
+          },
+          "output": {
+            "downloadVideos": true,
+            "outputFormat": "mp4",
+            "width": 768,
+            "height": 768
+          },
+          "advanced": {
+            "tokenType": "spark",
+            "timeout": 600000,
+            "autoResizeVideoAssets": true
+          }
+        }
+      },
+      "id": "sogni-ltx2-v2v",
+      "name": "Generate LTX-2 v2v",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [620, 300],
+      "notes": "LTX-2 v2v generation with reference video + ControlNet"
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Read Source Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Source Video": {
+      "main": [
+        [
+          {
+            "node": "Generate LTX-2 v2v",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

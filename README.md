@@ -29,7 +29,7 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 - MP4 video output format
 - Automatic video download as binary data
 - Configurable video parameters (frames, guidance, steps)
-- Dedicated video model selection
+- Dedicated video model selection (including WAN/LTX families)
 
 ### 📥 Automatic Image Download
 - Download generated images as binary data
@@ -67,6 +67,7 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 #### Video Resource
 - **Generate**: Create AI videos with customizable parameters
+- **Estimate Cost**: Estimate token/USD cost before generation
 
 #### Model Resource
 - **Get All**: List all available models
@@ -301,15 +302,35 @@ See [ControlNet Guide](./CONTROLNET_GUIDE.md) for detailed usage instructions.
 | **Negative Prompt** | string | "" | What to avoid in video |
 | **Style Prompt** | string | "" | Video style description |
 | **Number of Videos** | number | 1 | How many videos (1-4) |
-| **Frames** | number | 30 | Number of frames (10-120) |
+| **Frames** | number | 30 | Number of frames (10-120). For LTX-2 use 8n+1 frame counts |
+| **Duration** | number | auto | Optional seconds for model-aware frame calculation |
 | **FPS** | number | 30 | Frames per second (10-60) |
 | **Steps** | number | 20 | Inference steps (1-100) |
 | **Guidance** | number | 7.5 | Prompt adherence (0-30) |
+| **Shift** | number | model default | Optional motion intensity control |
+| **TeaCache Threshold** | number | model default | Optional T2V/I2V optimization control |
+| **Sampler** | string | model default | Optional sampler override |
+| **Scheduler** | string | model default | Optional scheduler override |
+| **Reference Image Property** | string | "" | Binary property for i2v/s2v/animate workflows |
+| **Reference End Image Property** | string | "" | Binary property for interpolation end frame |
+| **Reference Audio Property** | string | "" | Binary property for s2v workflows |
+| **Reference Video Property** | string | "" | Binary property for animate/v2v workflows |
+| **Video Start** | number | 0 | Optional source-video offset (seconds) |
+| **Audio Start** | number | 0 | Optional source-audio offset (seconds) |
+| **Audio Duration** | number | server default | Optional source-audio duration (seconds) |
+| **Trim End Frame** | boolean | false | Useful for transition stitching |
+| **First Frame Strength** | number | model default | LTX-2 keyframe interpolation control (0-1) |
+| **Last Frame Strength** | number | model default | LTX-2 keyframe interpolation control (0-1) |
+| **SAM2 Coordinates (JSON)** | string | "" | Animate-replace subject points, e.g. `[{"x":0.5,"y":0.5}]` |
+| **Enable LTX-2 Video ControlNet** | boolean | false | Enables `controlNet` for LTX v2v |
+| **Video ControlNet Type** | options | canny | `canny`, `pose`, `depth`, `detailer` |
+| **Video ControlNet Strength** | number | 0.8 | ControlNet strength for v2v |
 | **Output Format** | options | mp4 | Currently only `mp4` is supported |
 | **Download Videos** | boolean | true | Download as binary data |
 | **Width** | number | 512 | Video width (256-1024) |
 | **Height** | number | 512 | Video height (256-1024) |
 | **Timeout** | number | auto | Max wait time (ms) |
+| **Auto Resize Video Assets** | boolean | true | Normalize/resize reference assets for video compatibility |
 
 ### Image Edit Parameters (Qwen)
 
@@ -331,7 +352,7 @@ See [ControlNet Guide](./CONTROLNET_GUIDE.md) for detailed usage instructions.
 | **Style Prompt** | string | "" | Style description |
 | **Number of Images** | number | 1 | How many images (1-10) |
 | **Steps** | number | auto | Inference steps (auto: 20 for standard, 4 for lightning) |
-| **Guidance** | number | 7.5 | Prompt adherence (0-30) |
+| **Guidance** | number | auto | Prompt adherence (auto: 4.0 for standard, 1.0 for lightning) |
 | **Download Images** | boolean | true | Download as binary data |
 | **Output Format** | options | png | `png` or `jpg` |
 | **Token Type** | options | spark | `spark` or `sogni` |
@@ -356,8 +377,9 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 4. **Scheduled Generation** - Daily automated images
 5. **Video Generation** - AI video creation with customizable parameters
 6. **Image Edit with Qwen** - Edit images using context-aware Qwen models
-7. **ControlNet Edge Detection** - Structure-guided generation (coming soon)
-8. **ControlNet Pose Transfer** - Pose-guided generation (coming soon)
+7. **Emotional Slothi Telegram Bot** - Dynamic Qwen image-edit + Telegram posting
+8. **LTX-2 Video-to-Video ControlNet** - Advanced v2v workflow with reference video + controls
+9. **WAN Animate-Replace with SAM2** - Subject-guided video replacement with reference image + source video
 
 ---
 
@@ -649,7 +671,15 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.3.1 (Current)
+### v1.4.0 (Current)
+- 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.4.3`
+- 🎬 Added `Video → Estimate Cost` operation (wrapper `estimateVideoCost`)
+- 🧠 Improved video model detection to include `ltx2-*` and `wan_*` model families
+- 🧩 Added advanced video workflow inputs/controls for LTX/WAN (`referenceVideo`, `referenceAudio`, SAM2, keyframe strengths, video ControlNet)
+- 🖼️ Aligned Qwen image-edit guidance defaults with wrapper (`4.0` standard, `1.0` lightning)
+- 🎥 Added `Auto Resize Video Assets` toggle for video generation
+
+### v1.3.1
 - 📚 Enhanced README documentation for Image Edit feature
 - 📝 Added Image Edit output section, tips, and troubleshooting
 

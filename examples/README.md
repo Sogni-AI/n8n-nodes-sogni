@@ -124,6 +124,38 @@ Post AI-edited images to Telegram with dynamic text and emotional expressions ba
 
 ---
 
+### 8. LTX-2 Video-to-Video ControlNet
+**File**: `8-ltx2-video-to-video-controlnet.json`
+
+Run an LTX-2 v2v workflow using a source video and video ControlNet.
+
+**Features:**
+- Reads local reference video from disk
+- Uses `ltx2-19b-fp8_v2v_distilled`
+- LTX-2 video ControlNet (`canny`, `pose`, `depth`, `detailer`)
+- Workflow controls (trim end frame, keyframe strengths)
+- Automatic MP4 download
+
+**Use Case**: Motion transfer, structure-guided video restyling, video enhancement pipelines
+
+---
+
+### 9. WAN Animate-Replace with SAM2
+**File**: `9-wan-animate-replace-sam2.json`
+
+Run a WAN animate-replace workflow using a reference image, source video, and SAM2 coordinates.
+
+**Features:**
+- Dual binary inputs (`referenceImage`, `referenceVideo`)
+- WAN animate-replace model preset
+- SAM2 coordinate input for subject targeting
+- Workflow controls (video start, keyframe strengths, trim end frame)
+- Automatic MP4 download
+
+**Use Case**: Subject replacement, character swaps, guided identity transfer in motion clips
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI
@@ -332,4 +364,3 @@ Have a cool workflow example? Submit a pull request!
 ## 📝 License
 
 These examples are provided as-is under the MIT License. Feel free to modify and use them in your projects.
-

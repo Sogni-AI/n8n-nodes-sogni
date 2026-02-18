@@ -26,7 +26,9 @@ const methods = [
   'getBalance',
   'createProject',
   'createImageProject',
+  'createImageEditProject',
   'createVideoProject',
+  'estimateVideoCost',
   'createProjectWithRetry'
 ];
 

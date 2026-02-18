@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "n8n community node for Sogni AI image and video generation",
   "keywords": [
     "n8n-community-node-package",
@@ -67,7 +67,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client-wrapper": "^1.4.0"
+    "@sogni-ai/sogni-client-wrapper": "^1.4.3"
   },
   "engines": {
     "node": ">=18.0.0"

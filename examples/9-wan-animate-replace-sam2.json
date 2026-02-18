@@ -1,0 +1,157 @@
+{
+  "name": "WAN Animate-Replace with SAM2",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WAN Animate-Replace with SAM2\n\nUse a reference image + source video to replace/track a subject.\n\n### Setup Steps:\n\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Set paths in both Read Binary File nodes\n4. Run workflow\n\n### Required Assets:\n- `referenceImage` (subject/appearance)\n- `referenceVideo` (motion/source video)",
+        "height": 430,
+        "width": 360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, 80],
+      "id": "sticky-wan-setup",
+      "name": "WAN Setup"
+    },
+    {
+      "parameters": {
+        "content": "### SAM2 Tips\n\n- `sam2CoordinatesJson` should be JSON array\n- Example: `[{\"x\":0.5,\"y\":0.5}]`\n- Use multiple points for better subject detection\n\nYou can tune:\n- `videoStart`\n- `firstFrameStrength` / `lastFrameStrength`\n- `trimEndFrame`",
+        "height": 300,
+        "width": 260,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [760, 80],
+      "id": "sticky-sam2-tips",
+      "name": "SAM2 Tips"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [120, 300],
+      "notes": "Manual trigger"
+    },
+    {
+      "parameters": {
+        "filePath": "/path/to/your/reference-image.png",
+        "dataPropertyName": "referenceImage"
+      },
+      "id": "read-reference-image",
+      "name": "Read Reference Image",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [340, 240],
+      "notes": "Image used as subject/appearance reference"
+    },
+    {
+      "parameters": {
+        "filePath": "/path/to/your/source-video.mp4",
+        "dataPropertyName": "referenceVideo"
+      },
+      "id": "read-reference-video",
+      "name": "Read Reference Video",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [560, 240],
+      "notes": "Video used as source motion"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "generate",
+        "videoModelId": "wan_v2.2-14b-fp8_animate-replace_lightx2v",
+        "videoPositivePrompt": "Replace the subject with the reference character while preserving camera motion and background continuity",
+        "videoNetwork": "fast",
+        "videoAdditionalFields": {
+          "videoSettings": {
+            "negativePrompt": "blurry, artifacts, deformed face",
+            "numberOfMedia": 1,
+            "frames": 81,
+            "duration": 5,
+            "fps": 16,
+            "steps": 4,
+            "guidance": 1.2
+          },
+          "inputs": {
+            "referenceImageProperty": "referenceImage",
+            "referenceVideoProperty": "referenceVideo"
+          },
+          "workflowControls": {
+            "sam2CoordinatesJson": "[{\"x\":0.5,\"y\":0.5}]",
+            "videoStart": 0,
+            "trimEndFrame": false,
+            "firstFrameStrength": 0.6,
+            "lastFrameStrength": 0.6
+          },
+          "output": {
+            "downloadVideos": true,
+            "outputFormat": "mp4",
+            "width": 640,
+            "height": 640
+          },
+          "advanced": {
+            "tokenType": "spark",
+            "timeout": 600000,
+            "autoResizeVideoAssets": true
+          }
+        }
+      },
+      "id": "sogni-wan-animate-replace",
+      "name": "Generate WAN Animate-Replace",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [820, 240],
+      "notes": "Animate-replace workflow using SAM2 coordinates"
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Read Reference Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Reference Image": {
+      "main": [
+        [
+          {
+            "node": "Read Reference Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Reference Video": {
+      "main": [
+        [
+          {
+            "node": "Generate WAN Animate-Replace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

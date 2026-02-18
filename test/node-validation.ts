@@ -297,6 +297,43 @@ async function runTests() {
     }
   })();
 
+  // Test 31: Video Additional Fields groups for advanced workflows
+  await test('Should expose video inputs and workflow controls groups', () => {
+    const node = new Sogni();
+    const videoAdditional = node.description.properties.find(
+      p => p.name === 'videoAdditionalFields'
+    );
+    if (!videoAdditional || !videoAdditional.options) {
+      throw new Error('videoAdditionalFields not found');
+    }
+
+    const hasInputs = videoAdditional.options.some((o: any) => o.name === 'inputs');
+    const hasWorkflowControls = videoAdditional.options.some(
+      (o: any) => o.name === 'workflowControls'
+    );
+
+    if (!hasInputs) throw new Error('videoAdditionalFields.inputs group not found');
+    if (!hasWorkflowControls) {
+      throw new Error('videoAdditionalFields.workflowControls group not found');
+    }
+  })();
+
+  // Test 32: Video operation includes estimateCost
+  await test('Should have estimateCost operation for video resource', () => {
+    const node = new Sogni();
+    const operationProps = node.description.properties.filter(p => p.name === 'operation');
+    const videoOperationProp = operationProps.find(p =>
+      p.displayOptions?.show?.resource?.includes('video')
+    );
+    if (!videoOperationProp || !videoOperationProp.options) {
+      throw new Error('Video operation property not found');
+    }
+    const estimateCostOperation = videoOperationProp.options.find((o: any) => o.value === 'estimateCost');
+    if (!estimateCostOperation) {
+      throw new Error('estimateCost operation not found for video resource');
+    }
+  })();
+
   // Summary
   console.log('\n' + '='.repeat(50));
   console.log(`✅ Tests passed: ${testsPassed}`);
@@ -313,4 +350,3 @@ runTests().catch((error) => {
   console.error('Test suite failed:', error);
   process.exit(1);
 });
-

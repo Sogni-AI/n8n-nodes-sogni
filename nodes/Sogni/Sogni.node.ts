@@ -10,7 +10,12 @@ import {
 
 import { randomUUID } from 'crypto';
 
-import { SogniClientWrapper, SogniError, ControlNetName } from '@sogni-ai/sogni-client-wrapper';
+import {
+  SogniClientWrapper,
+  SogniError,
+  ControlNetName,
+  VideoControlNetName,
+} from '@sogni-ai/sogni-client-wrapper';
 
 /**
  * Enable optional AppId debug logging by setting:
@@ -295,6 +300,12 @@ export class Sogni implements INodeType {
             description: 'Generate AI videos',
             action: 'Generate Sogni video',
           },
+          {
+            name: 'Estimate Cost',
+            value: 'estimateCost',
+            description: 'Estimate token and USD cost for a video request',
+            action: 'Estimate video cost',
+          },
         ],
         default: 'generate',
       },
@@ -441,7 +452,7 @@ export class Sogni implements INodeType {
         },
         default: '',
         description:
-          'Choose a Qwen Image Edit model. Standard model (qwen_image_edit_2511_fp8) works best with 20 steps, Lightning model works best with 4 steps.',
+          'Choose a Qwen Image Edit model. Standard model works best near 20 steps / guidance 4.0, Lightning near 4 steps / guidance 1.0.',
       },
       {
         displayName: 'Edit Prompt',
@@ -567,8 +578,9 @@ export class Sogni implements INodeType {
                 displayName: 'Guidance',
                 name: 'guidance',
                 type: 'number',
-                default: 7.5,
-                description: 'How closely to follow the prompt. 7.5 is optimal for most cases.',
+                default: undefined as unknown as number,
+                description:
+                  'How closely to follow the prompt. Leave empty for model defaults (4.0 standard, 1.0 lightning).',
                 typeOptions: { minValue: 0, maxValue: 30, numberPrecision: 1 },
               },
               {
@@ -674,7 +686,7 @@ export class Sogni implements INodeType {
         description:
           'Type to filter video models by name/tag. The dropdown below refreshes when you edit this field.',
         displayOptions: {
-          show: { resource: ['video'], operation: ['generate'] },
+          show: { resource: ['video'], operation: ['generate', 'estimateCost'] },
         },
       },
       {
@@ -683,7 +695,7 @@ export class Sogni implements INodeType {
         type: 'options',
         required: true,
         displayOptions: {
-          show: { resource: ['video'], operation: ['generate'] },
+          show: { resource: ['video'], operation: ['generate', 'estimateCost'] },
         },
         typeOptions: {
           loadOptionsMethod: 'getVideoModelOptions',
@@ -729,6 +741,99 @@ export class Sogni implements INodeType {
         default: 'fast',
         description:
           'Network type to use. If timeout is left empty, this will imply 120s (fast) or 1200s (relaxed) for video.',
+      },
+
+      // ===== Video Cost Estimate Parameters =====
+      {
+        displayName: 'Width',
+        name: 'videoEstimateWidth',
+        type: 'number',
+        default: 512,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'Estimated output width in pixels (video engines typically require multiples of 16)',
+        typeOptions: { minValue: 480, maxValue: 1536 },
+      },
+      {
+        displayName: 'Height',
+        name: 'videoEstimateHeight',
+        type: 'number',
+        default: 512,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'Estimated output height in pixels (video engines typically require multiples of 16)',
+        typeOptions: { minValue: 480, maxValue: 1536 },
+      },
+      {
+        displayName: 'FPS',
+        name: 'videoEstimateFps',
+        type: 'number',
+        default: 16,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'Frames per second used for estimation',
+        typeOptions: { minValue: 1, maxValue: 60 },
+      },
+      {
+        displayName: 'Steps',
+        name: 'videoEstimateSteps',
+        type: 'number',
+        default: 4,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'Inference steps used for estimation',
+        typeOptions: { minValue: 1, maxValue: 100 },
+      },
+      {
+        displayName: 'Duration (seconds)',
+        name: 'videoEstimateDuration',
+        type: 'number',
+        default: 5,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'Estimated duration in seconds',
+        typeOptions: { minValue: 1, maxValue: 10 },
+      },
+      {
+        displayName: 'Frames (Optional)',
+        name: 'videoEstimateFrames',
+        type: 'number',
+        default: undefined as unknown as number,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'Optional explicit frame count; if set, this is sent along with duration',
+        typeOptions: { minValue: 1, maxValue: 300 },
+      },
+      {
+        displayName: 'Number of Videos',
+        name: 'videoEstimateNumberOfMedia',
+        type: 'number',
+        default: 1,
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        description: 'How many videos to estimate',
+        typeOptions: { minValue: 1, maxValue: 10 },
+      },
+      {
+        displayName: 'Token Type',
+        name: 'videoEstimateTokenType',
+        type: 'options',
+        default: 'spark',
+        displayOptions: {
+          show: { resource: ['video'], operation: ['estimateCost'] },
+        },
+        options: [
+          { name: 'Spark', value: 'spark' },
+          { name: 'SOGNI', value: 'sogni' },
+        ],
+        description: 'Token type for the estimate',
       },
 
       // ===== Regrouped Additional Fields - with backward compatibility =====
@@ -1032,8 +1137,18 @@ export class Sogni implements INodeType {
                 name: 'frames',
                 type: 'number',
                 default: 30,
-                description: 'Number of frames in the video (10-120)',
+                description:
+                  'Number of frames in the video (10-120). LTX-2 models work best with frame counts of 8n+1.',
                 typeOptions: { minValue: 10, maxValue: 120 },
+              },
+              {
+                displayName: 'Duration (seconds)',
+                name: 'duration',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'Optional duration in seconds. If set, this is passed to the SDK for model-aware frame handling.',
+                typeOptions: { minValue: 1, maxValue: 20 },
               },
               {
                 displayName: 'FPS (Frames Per Second)',
@@ -1060,12 +1175,178 @@ export class Sogni implements INodeType {
                 typeOptions: { minValue: 0, maxValue: 30, numberPrecision: 1 },
               },
               {
+                displayName: 'Shift',
+                name: 'shift',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Video motion intensity (typically 1.0-8.0, model dependent)',
+                typeOptions: { minValue: 0, maxValue: 10, numberPrecision: 1 },
+              },
+              {
+                displayName: 'TeaCache Threshold',
+                name: 'teacacheThreshold',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Optional optimization threshold for supported T2V/I2V models (0.0-1.0)',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Sampler',
+                name: 'sampler',
+                type: 'string',
+                default: '',
+                description: 'Optional sampler override (model-specific)',
+                placeholder: 'euler',
+              },
+              {
+                displayName: 'Scheduler',
+                name: 'scheduler',
+                type: 'string',
+                default: '',
+                description: 'Optional scheduler override (model-specific)',
+                placeholder: 'normal',
+              },
+              {
                 displayName: 'Seed',
                 name: 'seed',
                 type: 'number',
                 default: undefined,
                 description: 'Seed for reproducible results (optional)',
                 typeOptions: { minValue: 0, maxValue: 2147483647 },
+              },
+            ],
+          },
+          {
+            displayName: 'Workflow Inputs',
+            name: 'inputs',
+            values: [
+              {
+                displayName: 'Reference Image (Binary Property)',
+                name: 'referenceImageProperty',
+                type: 'string',
+                default: '',
+                description: 'Binary property containing reference image (i2v/s2v/animate workflows)',
+                placeholder: 'data',
+              },
+              {
+                displayName: 'Reference End Image (Binary Property)',
+                name: 'referenceImageEndProperty',
+                type: 'string',
+                default: '',
+                description: 'Binary property containing ending image for interpolation-capable workflows',
+                placeholder: 'endImage',
+              },
+              {
+                displayName: 'Reference Audio (Binary Property)',
+                name: 'referenceAudioProperty',
+                type: 'string',
+                default: '',
+                description: 'Binary property containing audio for s2v workflows',
+                placeholder: 'audio',
+              },
+              {
+                displayName: 'Reference Video (Binary Property)',
+                name: 'referenceVideoProperty',
+                type: 'string',
+                default: '',
+                description: 'Binary property containing source/driving video for animate/v2v workflows',
+                placeholder: 'video',
+              },
+            ],
+          },
+          {
+            displayName: 'Workflow Controls',
+            name: 'workflowControls',
+            values: [
+              {
+                displayName: 'Video Start (s)',
+                name: 'videoStart',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Start offset in seconds when reading reference video',
+                typeOptions: { minValue: 0, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Audio Start (s)',
+                name: 'audioStart',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Start offset in seconds when reading reference audio',
+                typeOptions: { minValue: 0, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Audio Duration (s)',
+                name: 'audioDuration',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Optional audio duration in seconds for s2v workflows',
+                typeOptions: { minValue: 0.1, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Trim End Frame',
+                name: 'trimEndFrame',
+                type: 'boolean',
+                default: false,
+                description: 'Trim final frame (useful for stitched transition sequences)',
+              },
+              {
+                displayName: 'First Frame Strength',
+                name: 'firstFrameStrength',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'LTX-2 keyframe interpolation strength for start frame (0-1)',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Last Frame Strength',
+                name: 'lastFrameStrength',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'LTX-2 keyframe interpolation strength for end frame (0-1)',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
+              },
+              {
+                displayName: 'SAM2 Coordinates (JSON)',
+                name: 'sam2CoordinatesJson',
+                type: 'string',
+                default: '',
+                description:
+                  'Animate-replace subject points as JSON array, e.g. [{"x":0.5,"y":0.5}]',
+                placeholder: '[{"x":0.5,"y":0.5}]',
+              },
+              {
+                displayName: 'Enable LTX-2 Video ControlNet',
+                name: 'enableVideoControlNet',
+                type: 'boolean',
+                default: false,
+                description: 'Enable LTX-2 v2v ControlNet using the reference video as control input',
+              },
+              {
+                displayName: 'Video ControlNet Type',
+                name: 'videoControlNetType',
+                type: 'options',
+                displayOptions: {
+                  show: { '/videoAdditionalFields.workflowControls.enableVideoControlNet': [true] },
+                },
+                options: [
+                  { name: 'Canny', value: 'canny' },
+                  { name: 'Pose', value: 'pose' },
+                  { name: 'Depth', value: 'depth' },
+                  { name: 'Detailer', value: 'detailer' },
+                ],
+                default: 'canny',
+                description: 'Control signal extracted from reference video',
+              },
+              {
+                displayName: 'Video ControlNet Strength',
+                name: 'videoControlNetStrength',
+                type: 'number',
+                displayOptions: {
+                  show: { '/videoAdditionalFields.workflowControls.enableVideoControlNet': [true] },
+                },
+                default: 0.8,
+                description: 'How strongly to follow ControlNet signal (0-1)',
+                typeOptions: { minValue: 0, maxValue: 1, numberPrecision: 2 },
               },
             ],
           },
@@ -1128,6 +1409,14 @@ export class Sogni implements INodeType {
                 default: undefined,
                 description: 'Max wait time in milliseconds. Leave empty for network-based defaults.',
                 typeOptions: { minValue: 1000, maxValue: 3600000 },
+              },
+              {
+                displayName: 'Auto Resize Video Assets',
+                name: 'autoResizeVideoAssets',
+                type: 'boolean',
+                default: true,
+                description:
+                  'Automatically normalize and resize reference images for video-compatible dimensions',
               },
             ],
           },
@@ -1277,15 +1566,20 @@ export class Sogni implements INodeType {
             limit: 100,
           } as any);
 
-          // Filter for video models (models that contain 'video', 'vid', 'animation', or 'motion' in their name/id)
+          // Filter for video models. Include explicit video families (WAN/LTX) plus keyword fallback.
           const videoModels = (models as any[]).filter((model: any) => {
+            const id = (model.id || '').toLowerCase();
             const name = (model.name || model.id || '').toLowerCase();
+            const description = (model.description || '').toLowerCase();
+            const haystack = `${id} ${name} ${description}`;
             return (
-              name.includes('video') ||
-              name.includes('vid') ||
-              name.includes('animation') ||
-              name.includes('motion') ||
-              name.includes('animate')
+              id.startsWith('wan_') ||
+              id.startsWith('ltx2-') ||
+              haystack.includes('video') ||
+              haystack.includes('vid') ||
+              haystack.includes('animation') ||
+              haystack.includes('motion') ||
+              haystack.includes('animate')
             );
           });
 
@@ -1649,7 +1943,6 @@ export class Sogni implements INodeType {
             const stylePrompt = gen.stylePrompt ?? '';
             const numberOfMedia = gen.numberOfMedia ?? 1;
             const stepsInput = gen.steps;
-            const guidance = gen.guidance ?? 7.5;
             const seed = gen.seed;
 
             const downloadImages = out.downloadImages ?? true;
@@ -1666,6 +1959,10 @@ export class Sogni implements INodeType {
             const steps = typeof stepsInput === 'number' && !Number.isNaN(stepsInput)
               ? stepsInput
               : isLightningModel ? 4 : 20;
+            const guidanceInput = gen.guidance;
+            const guidance = typeof guidanceInput === 'number' && !Number.isNaN(guidanceInput)
+              ? guidanceInput
+              : isLightningModel ? 1.0 : 4.0;
 
             // Timeout defaults by network if user left it empty
             const resolvedTimeoutMs =
@@ -1833,6 +2130,8 @@ export class Sogni implements INodeType {
             // Video additional fields
             const videoAdditional = (this.getNodeParameter('videoAdditionalFields', i, {}) as any) || {};
             const videoSettings = (videoAdditional.videoSettings as any) || {};
+            const videoInputs = (videoAdditional.inputs as any) || {};
+            const videoWorkflow = (videoAdditional.workflowControls as any) || {};
             const videoOutput = (videoAdditional.output as any) || {};
             const videoAdvanced = (videoAdditional.advanced as any) || {};
 
@@ -1840,11 +2139,20 @@ export class Sogni implements INodeType {
             const negativePrompt = videoSettings.negativePrompt ?? '';
             const stylePrompt = videoSettings.stylePrompt ?? '';
             const numberOfMedia = videoSettings.numberOfMedia ?? 1;
-            const frames = videoSettings.frames ?? 30;
+            const requestedFrames = videoSettings.frames ?? 30;
+            const duration = videoSettings.duration;
             const fps = videoSettings.fps ?? 30;
             const steps = videoSettings.steps ?? 20;
             const guidance = videoSettings.guidance ?? 7.5;
+            const shift = videoSettings.shift;
+            const teacacheThreshold = videoSettings.teacacheThreshold;
+            const sampler = videoSettings.sampler;
+            const scheduler = videoSettings.scheduler;
             const seed = videoSettings.seed;
+            const isLtx2Model = videoModelId.toLowerCase().startsWith('ltx2-');
+            const frames = isLtx2Model
+              ? Math.max(9, Math.round((requestedFrames - 1) / 8) * 8 + 1)
+              : requestedFrames;
 
             const downloadVideos = videoOutput.downloadVideos ?? true;
             const outputFormat = videoOutput.outputFormat ?? 'mp4';
@@ -1853,6 +2161,95 @@ export class Sogni implements INodeType {
 
             const tokenType = videoAdvanced.tokenType ?? 'spark';
             const timeoutInput = videoAdvanced.timeout;
+            const autoResizeVideoAssets = videoAdvanced.autoResizeVideoAssets ?? true;
+
+            const referenceImageProperty = (videoInputs.referenceImageProperty ?? '').trim();
+            const referenceImageEndProperty = (videoInputs.referenceImageEndProperty ?? '').trim();
+            const referenceAudioProperty = (videoInputs.referenceAudioProperty ?? '').trim();
+            const referenceVideoProperty = (videoInputs.referenceVideoProperty ?? '').trim();
+
+            const readOptionalBinaryProperty = async (
+              propertyName: string,
+              label: string,
+            ): Promise<Buffer | undefined> => {
+              if (!propertyName) return undefined;
+              const binaryData = items[i].binary?.[propertyName];
+              if (!binaryData) {
+                throw new NodeOperationError(
+                  this.getNode(),
+                  `No binary data found in property "${propertyName}" for ${label}.`,
+                  { itemIndex: i },
+                );
+              }
+              return this.helpers.getBinaryDataBuffer(i, propertyName);
+            };
+
+            const referenceImage = await readOptionalBinaryProperty(
+              referenceImageProperty,
+              'reference image',
+            );
+            const referenceImageEnd = await readOptionalBinaryProperty(
+              referenceImageEndProperty,
+              'reference end image',
+            );
+            const referenceAudio = await readOptionalBinaryProperty(
+              referenceAudioProperty,
+              'reference audio',
+            );
+            const referenceVideo = await readOptionalBinaryProperty(
+              referenceVideoProperty,
+              'reference video',
+            );
+
+            const videoStart = videoWorkflow.videoStart;
+            const audioStart = videoWorkflow.audioStart;
+            const audioDuration = videoWorkflow.audioDuration;
+            const trimEndFrame = videoWorkflow.trimEndFrame ?? false;
+            const firstFrameStrength = videoWorkflow.firstFrameStrength;
+            const lastFrameStrength = videoWorkflow.lastFrameStrength;
+            const sam2CoordinatesJson = (videoWorkflow.sam2CoordinatesJson ?? '').trim();
+
+            let sam2Coordinates:
+              | Array<{ x: number; y: number }>
+              | undefined;
+            if (sam2CoordinatesJson) {
+              let parsed: unknown;
+              try {
+                parsed = JSON.parse(sam2CoordinatesJson);
+              } catch {
+                throw new NodeOperationError(
+                  this.getNode(),
+                  'SAM2 Coordinates must be valid JSON, e.g. [{"x":0.5,"y":0.5}]',
+                  { itemIndex: i },
+                );
+              }
+
+              if (!Array.isArray(parsed) || parsed.length === 0) {
+                throw new NodeOperationError(
+                  this.getNode(),
+                  'SAM2 Coordinates must be a non-empty JSON array.',
+                  { itemIndex: i },
+                );
+              }
+
+              sam2Coordinates = parsed.map((point: any, pointIndex: number) => {
+                const x = Number(point?.x);
+                const y = Number(point?.y);
+                if (!Number.isFinite(x) || !Number.isFinite(y)) {
+                  throw new NodeOperationError(
+                    this.getNode(),
+                    `SAM2 coordinate at index ${pointIndex} must include numeric x and y values.`,
+                    { itemIndex: i },
+                  );
+                }
+                return { x, y };
+              });
+            }
+
+            const enableVideoControlNet = videoWorkflow.enableVideoControlNet ?? false;
+            const videoControlNetType = (videoWorkflow.videoControlNetType ??
+              'canny') as VideoControlNetName;
+            const videoControlNetStrength = videoWorkflow.videoControlNetStrength;
 
             // Timeout defaults for video (longer than image)
             const resolvedTimeoutMs =
@@ -1869,9 +2266,12 @@ export class Sogni implements INodeType {
               negativePrompt,
               stylePrompt,
               frames,
+              duration,
               fps,
               steps,
               guidance,
+              shift,
+              teacacheThreshold,
               numberOfMedia,
               network: videoNetwork,
               tokenType,
@@ -1879,9 +2279,30 @@ export class Sogni implements INodeType {
               width,
               height,
               seed,
+              sampler,
+              scheduler,
+              referenceImage,
+              referenceImageEnd,
+              referenceAudio,
+              referenceVideo,
+              videoStart,
+              audioStart,
+              audioDuration,
+              trimEndFrame,
+              firstFrameStrength,
+              lastFrameStrength,
+              sam2Coordinates,
+              autoResizeVideoAssets,
               waitForCompletion: true,
               timeout: resolvedTimeoutMs,
             };
+
+            if (enableVideoControlNet) {
+              videoProjectConfig.controlNet = {
+                name: videoControlNetType,
+                strength: videoControlNetStrength,
+              };
+            }
 
             // Generate video
             const videoResult = await client.createVideoProject(videoProjectConfig);
@@ -1909,11 +2330,38 @@ export class Sogni implements INodeType {
                   tokenType,
                   resolved: {
                     frames,
+                    requestedFrames,
+                    duration,
                     fps,
                     steps,
                     guidance,
+                    shift,
+                    teacacheThreshold,
                     numberOfMedia,
+                    sampler,
+                    scheduler,
+                    videoStart,
+                    audioStart,
+                    audioDuration,
+                    trimEndFrame,
+                    firstFrameStrength,
+                    lastFrameStrength,
                     timeoutMs: resolvedTimeoutMs,
+                    autoResizeVideoAssets,
+                    videoControlNet:
+                      enableVideoControlNet
+                        ? {
+                            type: videoControlNetType,
+                            strength: videoControlNetStrength,
+                          }
+                        : undefined,
+                    providedAssets: {
+                      referenceImage: !!referenceImage,
+                      referenceImageEnd: !!referenceImageEnd,
+                      referenceAudio: !!referenceAudio,
+                      referenceVideo: !!referenceVideo,
+                      sam2Coordinates: sam2Coordinates?.length ?? 0,
+                    },
                   },
                   cost: vr.cost ?? vr.costTokens ?? vr.tokensUsed ?? vr.tokenCost ?? undefined,
                   queuePosition: vr.queuePosition ?? vr.queue?.position ?? vr.position ?? undefined,
@@ -1982,6 +2430,43 @@ export class Sogni implements INodeType {
             }
 
             returnData.push(videoOutputData);
+          } else if (resource === 'video' && operation === 'estimateCost') {
+            const modelId = this.getNodeParameter('videoModelId', i) as string;
+            const width = this.getNodeParameter('videoEstimateWidth', i) as number;
+            const height = this.getNodeParameter('videoEstimateHeight', i) as number;
+            const fps = this.getNodeParameter('videoEstimateFps', i) as number;
+            const steps = this.getNodeParameter('videoEstimateSteps', i) as number;
+            const duration = this.getNodeParameter('videoEstimateDuration', i) as number;
+            const framesInput = this.getNodeParameter('videoEstimateFrames', i, undefined) as
+              | number
+              | undefined;
+            const numberOfMedia = this.getNodeParameter('videoEstimateNumberOfMedia', i) as number;
+            const tokenType = this.getNodeParameter('videoEstimateTokenType', i) as 'spark' | 'sogni';
+
+            const estimateParams: any = {
+              modelId,
+              width,
+              height,
+              fps,
+              steps,
+              duration,
+              numberOfMedia,
+              tokenType,
+            };
+
+            if (typeof framesInput === 'number' && !Number.isNaN(framesInput) && framesInput > 0) {
+              estimateParams.frames = framesInput;
+            }
+
+            const estimate = await client.estimateVideoCost(estimateParams);
+
+            returnData.push({
+              json: {
+                modelId,
+                parameters: estimateParams,
+                estimate,
+              },
+            });
           } else if (resource === 'model' && operation === 'getAll') {
             // Get All Models
             const options = this.getNodeParameter('options', i, {}) as any;
