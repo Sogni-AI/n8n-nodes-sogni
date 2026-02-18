@@ -156,6 +156,21 @@ Run a WAN animate-replace workflow using a reference image, source video, and SA
 
 ---
 
+### 10. LTX-2 Text-to-Video
+**File**: `10-ltx2-text-to-video.json`
+
+Minimal LTX-2 text-to-video workflow with only prompt + core video settings.
+
+**Features:**
+- Manual trigger + single Sogni node
+- Uses `ltx2-19b-fp8_t2v`
+- LTX-safe frame count preset (`8n+1`)
+- Fast network + MP4 download
+
+**Use Case**: Quick LTX t2v experiments, baseline prompt iteration, smoke tests
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI

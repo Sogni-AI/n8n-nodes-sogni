@@ -1,0 +1,86 @@
+{
+  "name": "LTX-2 Text-to-Video",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## LTX-2 Text-to-Video\n\nSimple text-to-video example using an LTX-2 model.\n\n### Setup\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Click Test Workflow\n\n### Tips\n- Keep frames at 8n+1 (e.g. 33, 81, 113)\n- Use fast network for quicker turnaround",
+        "height": 330,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-120, 100],
+      "id": "sticky-ltx2-t2v-info",
+      "name": "LTX-2 T2V Info"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [220, 280]
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "generate",
+        "videoModelId": "ltx2-19b-fp8_t2v",
+        "videoPositivePrompt": "A cinematic drone shot over a neon-lit futuristic city at dusk, volumetric fog, smooth motion",
+        "videoNetwork": "fast",
+        "videoAdditionalFields": {
+          "videoSettings": {
+            "negativePrompt": "blurry, noisy, artifacts, jitter",
+            "numberOfMedia": 1,
+            "frames": 113,
+            "duration": 5,
+            "fps": 24,
+            "steps": 20,
+            "guidance": 3.5
+          },
+          "output": {
+            "downloadVideos": true,
+            "outputFormat": "mp4",
+            "width": 768,
+            "height": 768
+          },
+          "advanced": {
+            "tokenType": "spark",
+            "timeout": 600000,
+            "autoResizeVideoAssets": true
+          }
+        }
+      },
+      "id": "sogni-ltx2-t2v",
+      "name": "Generate LTX-2 T2V",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [500, 280],
+      "notes": "Basic LTX-2 text-to-video generation"
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Generate LTX-2 T2V",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

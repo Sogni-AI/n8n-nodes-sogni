@@ -380,6 +380,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 7. **Emotional Slothi Telegram Bot** - Dynamic Qwen image-edit + Telegram posting
 8. **LTX-2 Video-to-Video ControlNet** - Advanced v2v workflow with reference video + controls
 9. **WAN Animate-Replace with SAM2** - Subject-guided video replacement with reference image + source video
+10. **LTX-2 Text-to-Video** - Minimal prompt-only LTX t2v workflow
 
 ---
 
@@ -671,7 +672,10 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.4.0 (Current)
+### v1.4.1 (Current)
+- 🧪 Added dedicated LTX-2 text-to-video example workflow (`examples/10-ltx2-text-to-video.json`)
+
+### v1.4.0
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.4.3`
 - 🎬 Added `Video → Estimate Cost` operation (wrapper `estimateVideoCost`)
 - 🧠 Improved video model detection to include `ltx2-*` and `wan_*` model families
