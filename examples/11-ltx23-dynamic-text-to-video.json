@@ -1,0 +1,146 @@
+{
+  "name": "LTX 2.3 Dynamic Text-to-Video",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## LTX 2.3 Text-to-Video\n\nThis workflow finds the most available `ltx23-*` model first, then runs text-to-video.\n\n### Setup\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Click Test Workflow\n\n### Why dynamic selection?\n- LTX 2.3 model IDs can change as new presets land\n- This avoids hardcoding a specific model ID\n- Frames are set to an `8n+1` safe value for LTX",
+        "height": 360,
+        "width": 360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        80
+      ],
+      "id": "sticky-ltx23-t2v-info",
+      "name": "LTX 2.3 T2V Info"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "model",
+        "operation": "getAll"
+      },
+      "id": "get-models",
+      "name": "Get All Models",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        460,
+        280
+      ],
+      "notes": "Fetches all currently available Sogni models"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ltx23Models = $input.all()\n  .map((item) => item.json)\n  .filter((model) => {\n    const id = String(model.id || '').toLowerCase();\n    return id.startsWith('ltx23-') || id.startsWith('ltx2.3-');\n  })\n  .sort((a, b) => (b.workerCount || 0) - (a.workerCount || 0));\n\nif (ltx23Models.length === 0) {\n  throw new Error('No LTX 2.3 models are available right now. Try again later or open the video model dropdown to choose another family.');\n}\n\nconst bestModel = ltx23Models[0];\n\nreturn {\n  json: {\n    modelId: bestModel.id,\n    modelName: bestModel.name || bestModel.id,\n    workerCount: bestModel.workerCount || 0,\n    recommendedSteps: bestModel.recommendedSettings?.steps || 20,\n    recommendedGuidance: bestModel.recommendedSettings?.guidance || 3.5,\n    frames: 113,\n    fps: 24\n  }\n};"
+      },
+      "id": "select-ltx23-model",
+      "name": "Select LTX 2.3 Model",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        280
+      ],
+      "notes": "Picks the LTX 2.3 model with the most workers"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "generate",
+        "videoModelId": "={{ $json.modelId }}",
+        "videoPositivePrompt": "A cinematic tracking shot through a rain-soaked cyberpunk market at night, volumetric lighting, reflective puddles, smooth camera motion",
+        "videoNetwork": "fast",
+        "videoAdditionalFields": {
+          "videoSettings": {
+            "negativePrompt": "blurry, noisy, warped faces, jitter, flicker",
+            "numberOfMedia": 1,
+            "frames": "={{ $json.frames }}",
+            "duration": 5,
+            "fps": "={{ $json.fps }}",
+            "steps": "={{ $json.recommendedSteps }}",
+            "guidance": "={{ $json.recommendedGuidance }}"
+          },
+          "output": {
+            "downloadVideos": true,
+            "outputFormat": "mp4",
+            "width": 768,
+            "height": 768
+          },
+          "advanced": {
+            "tokenType": "spark",
+            "timeout": 600000,
+            "autoResizeVideoAssets": true
+          }
+        }
+      },
+      "id": "generate-ltx23-video",
+      "name": "Generate LTX 2.3 Video",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        960,
+        280
+      ],
+      "notes": "Uses the selected LTX 2.3 model for text-to-video generation"
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Get All Models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Models": {
+      "main": [
+        [
+          {
+            "node": "Select LTX 2.3 Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select LTX 2.3 Model": {
+      "main": [
+        [
+          {
+            "node": "Generate LTX 2.3 Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

@@ -29,7 +29,7 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 - MP4 video output format
 - Automatic video download as binary data
 - Configurable video parameters (frames, guidance, steps)
-- Dedicated video model selection (including WAN/LTX families)
+- Dedicated video model selection (including WAN, LTX-2, and LTX 2.3 families)
 
 ### 📥 Automatic Image Download
 - Download generated images as binary data
@@ -381,6 +381,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 8. **LTX-2 Video-to-Video ControlNet** - Advanced v2v workflow with reference video + controls
 9. **WAN Animate-Replace with SAM2** - Subject-guided video replacement with reference image + source video
 10. **LTX-2 Text-to-Video** - Minimal prompt-only LTX t2v workflow
+11. **LTX 2.3 Dynamic Text-to-Video** - Auto-select an available `ltx23-*` model before generation
 
 ---
 
@@ -672,13 +673,16 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.4.1 (Current)
+### v1.4.2 (Current)
 - 🧪 Added dedicated LTX-2 text-to-video example workflow (`examples/10-ltx2-text-to-video.json`)
+- 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.5.2`
+- 🎬 Added `ltx23-*` / `ltx2.3-*` video model detection and LTX frame normalization coverage
+- 🧪 Added dynamic LTX 2.3 example workflow (`examples/11-ltx23-dynamic-text-to-video.json`)
 
 ### v1.4.0
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.4.3`
 - 🎬 Added `Video → Estimate Cost` operation (wrapper `estimateVideoCost`)
-- 🧠 Improved video model detection to include `ltx2-*` and `wan_*` model families
+- 🧠 Improved video model detection to include `ltx2-*`, `ltx23-*`, and `wan_*` model families
 - 🧩 Added advanced video workflow inputs/controls for LTX/WAN (`referenceVideo`, `referenceAudio`, SAM2, keyframe strengths, video ControlNet)
 - 🖼️ Aligned Qwen image-edit guidance defaults with wrapper (`4.0` standard, `1.0` lightning)
 - 🎥 Added `Auto Resize Video Assets` toggle for video generation

@@ -171,6 +171,22 @@ Minimal LTX-2 text-to-video workflow with only prompt + core video settings.
 
 ---
 
+### 11. LTX 2.3 Dynamic Text-to-Video
+**File**: `11-ltx23-dynamic-text-to-video.json`
+
+Find an available `ltx23-*` model dynamically, then run text-to-video with safe LTX defaults.
+
+**Features:**
+- Fetches all available models first
+- Filters for `ltx23-*` / `ltx2.3-*`
+- Chooses the model with the highest worker count
+- Uses an LTX-safe frame count preset (`8n+1`)
+- Avoids hardcoding a single LTX 2.3 preset
+
+**Use Case**: Adapting to changing LTX 2.3 presets, quick validation of latest LTX 2.3 availability
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI

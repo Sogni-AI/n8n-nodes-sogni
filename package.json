@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "n8n community node for Sogni AI image and video generation",
   "keywords": [
     "n8n-community-node-package",
@@ -38,6 +38,7 @@
     "lintfix": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' 'index.ts' --fix",
     "prepublishOnly": "npm run build && npm run lint",
     "test:validation": "npx ts-node test/node-validation.ts",
+    "test:unit": "npx ts-node test/video-model-utils.ts",
     "test:video": "node test/test-video-simple.js",
     "test:video:minimal": "node test/test-video-minimal.js",
     "test:video:detailed": "npx ts-node test/test-video-generation.ts",
@@ -67,7 +68,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client-wrapper": "^1.4.3"
+    "@sogni-ai/sogni-client-wrapper": "^1.5.2"
   },
   "engines": {
     "node": ">=18.0.0"

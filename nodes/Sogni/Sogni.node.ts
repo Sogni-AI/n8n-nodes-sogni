@@ -12,10 +12,13 @@ import { randomUUID } from 'crypto';
 
 import {
   SogniClientWrapper,
-  SogniError,
   ControlNetName,
   VideoControlNetName,
 } from '@sogni-ai/sogni-client-wrapper';
+import {
+  isVideoModelCandidate,
+  normalizeRequestedVideoFrames,
+} from './videoModelUtils';
 
 /**
  * Enable optional AppId debug logging by setting:
@@ -1567,21 +1570,7 @@ export class Sogni implements INodeType {
           } as any);
 
           // Filter for video models. Include explicit video families (WAN/LTX) plus keyword fallback.
-          const videoModels = (models as any[]).filter((model: any) => {
-            const id = (model.id || '').toLowerCase();
-            const name = (model.name || model.id || '').toLowerCase();
-            const description = (model.description || '').toLowerCase();
-            const haystack = `${id} ${name} ${description}`;
-            return (
-              id.startsWith('wan_') ||
-              id.startsWith('ltx2-') ||
-              haystack.includes('video') ||
-              haystack.includes('vid') ||
-              haystack.includes('animation') ||
-              haystack.includes('motion') ||
-              haystack.includes('animate')
-            );
-          });
+          const videoModels = (models as any[]).filter((model: any) => isVideoModelCandidate(model));
 
           const options: INodePropertyOptions[] = videoModels.map((model: any) => {
             const workers = model.workerCount ?? model.workers ?? 0;
@@ -2149,10 +2138,7 @@ export class Sogni implements INodeType {
             const sampler = videoSettings.sampler;
             const scheduler = videoSettings.scheduler;
             const seed = videoSettings.seed;
-            const isLtx2Model = videoModelId.toLowerCase().startsWith('ltx2-');
-            const frames = isLtx2Model
-              ? Math.max(9, Math.round((requestedFrames - 1) / 8) * 8 + 1)
-              : requestedFrames;
+            const frames = normalizeRequestedVideoFrames(videoModelId, requestedFrames);
 
             const downloadVideos = videoOutput.downloadVideos ?? true;
             const outputFormat = videoOutput.outputFormat ?? 'mp4';
@@ -2455,7 +2441,7 @@ export class Sogni implements INodeType {
             };
 
             if (typeof framesInput === 'number' && !Number.isNaN(framesInput) && framesInput > 0) {
-              estimateParams.frames = framesInput;
+              estimateParams.frames = normalizeRequestedVideoFrames(modelId, framesInput);
             }
 
             const estimate = await client.estimateVideoCost(estimateParams);
