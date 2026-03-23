@@ -1,0 +1,200 @@
+{
+  "name": "Sogni LLM Artist Poem Emailer",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sogni LLM Artist Poem Emailer\n\nGenerate a short rhyming witty poem about a named artist with Sogni LLM, then email it out.\n\n### Setup\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Add SMTP credentials to `Send Email`\n4. Update the `fromEmail` and `toEmail` placeholders\n5. Open the form URL from `Ask For Artist Name`\n6. Submit an artist name to run the workflow\n\n### Notes\n- This workflow picks the available chat model with the most workers\n- It asks for an artist name first, then uses that in the poem prompt\n- Update the prompt in `Select Chat Model + Prompt` if you want a different rhyme style",
+        "height": 420,
+        "width": 360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        60
+      ],
+      "id": "sticky-llm-email-info",
+      "name": "LLM Email Info"
+    },
+    {
+      "parameters": {
+        "formTitle": "Artist Poem Request",
+        "formDescription": "Enter an artist name and Sogni LLM will write a short witty rhyming poem, then email it to you.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Artist Name",
+              "fieldName": "artistName",
+              "fieldType": "text",
+              "placeholder": "e.g. Frida Kahlo",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "artist-form-trigger",
+      "name": "Ask For Artist Name",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        280
+      ],
+      "webhookId": "artist-poem-request-form",
+      "notes": "Submit the form with an artist name to trigger the poem email workflow",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "resource": "llm",
+        "operation": "getAll"
+      },
+      "id": "get-llm-models",
+      "name": "Get All LLM Models",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        480,
+        280
+      ],
+      "notes": "Fetches currently available Sogni chat models"
+    },
+    {
+      "parameters": {
+        "jsCode": "const models = $input.all()\n  .map((item) => item.json)\n  .sort((a, b) => (b.workerCount || 0) - (a.workerCount || 0));\n\nif (models.length === 0) {\n  throw new Error('No Sogni LLM models are available right now. Try again later.');\n}\n\nconst artistName = String($('Ask For Artist Name').first().json.artistName || '').trim();\nif (!artistName) {\n  throw new Error('Artist name is required.');\n}\n\nconst bestModel = models[0];\n\nreturn {\n  json: {\n    artistName,\n    modelId: bestModel.id,\n    modelName: bestModel.label || bestModel.id,\n    workerCount: bestModel.workerCount || 0,\n    prompt: `Write a short witty rhyming poem about ${artistName}. Keep it to six lines or fewer, clever, warm, and email-friendly. Mention the artist by name.`,\n    systemPrompt: 'You are a concise poet. Reply in plain text only with the poem. No title, no markdown, no preamble, no closing signature.',\n    emailSubject: `Sogni LLM poem for ${artistName}`\n  }\n};"
+      },
+      "id": "select-chat-model-and-prompt",
+      "name": "Select Chat Model + Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        280
+      ],
+      "notes": "Chooses the chat model with the most workers and prepares the poem prompt"
+    },
+    {
+      "parameters": {
+        "resource": "llm",
+        "operation": "generate",
+        "llmModelId": "={{ $json.modelId }}",
+        "llmPrompt": "={{ $json.prompt }}",
+        "llmSystemPrompt": "={{ $json.systemPrompt }}",
+        "llmAdditionalFields": {
+          "maxTokens": 220,
+          "tokenType": "spark"
+        }
+      },
+      "id": "write-artist-poem",
+      "name": "Write Artist Poem",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        280
+      ],
+      "notes": "Generates the poem with the selected Sogni LLM model"
+    },
+    {
+      "parameters": {
+        "jsCode": "const poem = String($json.content || '').trim();\n\nif (!poem) {\n  throw new Error('The Sogni LLM response was empty.');\n}\n\nconst escapeHtml = (value) => value\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;')\n  .replace(/'/g, '&#39;');\n\nconst modelId = String($json.modelId || 'unknown-model');\nconst artistName = String($json.artistName || 'this artist');\nconst poemHtml = escapeHtml(poem).replace(/\\n/g, '<br>');\n\nreturn {\n  json: {\n    ...$json,\n    emailSubject: `Sogni LLM poem for ${artistName} (${modelId})`,\n    emailHtml: `<p>Fresh from Sogni LLM for <strong>${escapeHtml(artistName)}</strong>:</p><p style=\"font-family: Georgia, serif; line-height: 1.6;\">${poemHtml}</p><p><small>Model: ${escapeHtml(modelId)}</small></p>`\n  }\n};"
+      },
+      "id": "format-email",
+      "name": "Format Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        280
+      ],
+      "notes": "Formats the generated poem as HTML for email delivery"
+    },
+    {
+      "parameters": {
+        "fromEmail": "Sogni Poetry Bot <YOUR_EMAIL@example.com>",
+        "toEmail": "YOUR_EMAIL@example.com",
+        "subject": "={{ $json.emailSubject }}",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        280
+      ],
+      "notes": "Requires SMTP credentials and sends the poem to your inbox"
+    }
+  ],
+  "connections": {
+    "Ask For Artist Name": {
+      "main": [
+        [
+          {
+            "node": "Get All LLM Models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All LLM Models": {
+      "main": [
+        [
+          {
+            "node": "Select Chat Model + Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Chat Model + Prompt": {
+      "main": [
+        [
+          {
+            "node": "Write Artist Poem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Artist Poem": {
+      "main": [
+        [
+          {
+            "node": "Format Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.4.2",
-  "description": "n8n community node for Sogni AI image and video generation",
+  "version": "1.5.0",
+  "description": "n8n community node for Sogni AI image, video, and LLM generation",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
@@ -13,7 +13,9 @@
     "flux",
     "controlnet",
     "workflow",
-    "automation"
+    "automation",
+    "llm",
+    "chat"
   ],
   "license": "MIT",
   "homepage": "https://github.com/Sogni-AI/n8n-nodes-sogni#readme",
@@ -68,7 +70,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client-wrapper": "^1.5.2"
+    "@sogni-ai/sogni-client-wrapper": "^1.6.0"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -187,6 +187,22 @@ Find an available `ltx23-*` model dynamically, then run text-to-video with safe 
 
 ---
 
+### 12. Sogni LLM Artist Poem Emailer
+**File**: `12-sogni-llm-artist-poem-email.json`
+
+Generate a short rhyming witty poem about a named artist with a Sogni LLM model, then email it out through SMTP.
+
+**Features:**
+- Form trigger that asks for an artist name
+- Fetches all available Sogni LLM models first
+- Chooses the chat model with the highest worker count
+- Generates a concise poem with system + user prompts using the submitted artist name
+- Sends the result via the built-in Send Email node
+
+**Use Case**: AI writing automations, email digests, lightweight creative content workflows
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI

@@ -234,7 +234,7 @@ export class Sogni implements INodeType {
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-    description: 'Generate AI images and videos using Sogni AI Supernet with ControlNet support',
+    description: 'Generate AI images, videos, and LLM responses using Sogni AI Supernet',
     defaults: {
       name: 'Sogni AI',
     },
@@ -255,6 +255,7 @@ export class Sogni implements INodeType {
         options: [
           { name: 'Image', value: 'image' },
           { name: 'Video', value: 'video' },
+          { name: 'LLM', value: 'llm' },
           { name: 'Model', value: 'model' },
           { name: 'Account', value: 'account' },
         ],
@@ -282,6 +283,32 @@ export class Sogni implements INodeType {
             value: 'edit',
             description: 'Edit images using Qwen Image Edit models with context images',
             action: 'Edit image with Qwen',
+          },
+        ],
+        default: 'generate',
+      },
+
+      // LLM Operations
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        displayOptions: {
+          show: { resource: ['llm'] },
+        },
+        options: [
+          {
+            name: 'Generate',
+            value: 'generate',
+            description: 'Generate a text response with a Sogni LLM model',
+            action: 'Generate LLM response',
+          },
+          {
+            name: 'Get All',
+            value: 'getAll',
+            description: 'Get all available Sogni LLM models',
+            action: 'Get all LLM models',
           },
         ],
         default: 'generate',
@@ -1426,6 +1453,94 @@ export class Sogni implements INodeType {
         ],
       },
 
+      // ===== LLM Parameters =====
+      {
+        displayName: 'Model Search',
+        name: 'llmModelSearch',
+        type: 'string',
+        placeholder: 'e.g., qwen, vision, reasoning',
+        default: '',
+        displayOptions: {
+          show: { resource: ['llm'], operation: ['generate'] },
+        },
+        description:
+          'Type to filter chat models by ID. The dropdown below refreshes when you edit this field.',
+      },
+      {
+        displayName: 'Model',
+        name: 'llmModelId',
+        type: 'options',
+        required: true,
+        displayOptions: {
+          show: { resource: ['llm'], operation: ['generate'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getChatModelOptions',
+          loadOptionsDependsOn: ['llmModelSearch'],
+        },
+        default: '',
+        description: 'The Sogni chat/LLM model to use',
+      },
+      {
+        displayName: 'Prompt',
+        name: 'llmPrompt',
+        type: 'string',
+        required: true,
+        default: '',
+        displayOptions: {
+          show: { resource: ['llm'], operation: ['generate'] },
+        },
+        description: 'The user prompt to send to the selected Sogni LLM model',
+      },
+      {
+        displayName: 'System Prompt',
+        name: 'llmSystemPrompt',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          show: { resource: ['llm'], operation: ['generate'] },
+        },
+        description: 'Optional system instruction to guide tone, style, or behavior',
+      },
+      {
+        displayName: 'LLM Additional Fields',
+        name: 'llmAdditionalFields',
+        type: 'collection',
+        placeholder: 'Add Field',
+        default: {},
+        displayOptions: {
+          show: { resource: ['llm'], operation: ['generate'] },
+        },
+        options: [
+          {
+            displayName: 'Max Tokens',
+            name: 'maxTokens',
+            type: 'number',
+            default: 256,
+            description: 'Maximum number of completion tokens to request',
+            typeOptions: { minValue: 1, maxValue: 65536 },
+          },
+          {
+            displayName: 'Thinking',
+            name: 'think',
+            type: 'boolean',
+            default: false,
+            description: 'Whether to enable reasoning for models that support it',
+          },
+          {
+            displayName: 'Token Type',
+            name: 'tokenType',
+            type: 'options',
+            options: [
+              { name: 'Spark', value: 'spark', description: 'Use Spark tokens (cheaper)' },
+              { name: 'SOGNI', value: 'sogni', description: 'Use SOGNI tokens' },
+            ],
+            default: 'spark',
+            description: 'Which token type to use for the chat request',
+          },
+        ],
+      },
+
       // ===== Model Get Parameters =====
       {
         displayName: 'Model Search',
@@ -1679,6 +1794,77 @@ export class Sogni implements INodeType {
         } finally {
           await safeDisconnect(client, {
             label: 'loadOptions:getImageEditModelOptions',
+            appId,
+            timeoutMs: 2000,
+          });
+        }
+      },
+
+      async getChatModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('sogniApi');
+
+        // IMPORTANT: Use a dedicated unique appId for loadOptions so the editor UI cannot
+        // interfere with any running workflow execution.
+        const appId = generateUniqueAppId('n8n-sogni-loadopts');
+        debugLogAppId(`loadOptions:getChatModelOptions appId=${appId}`);
+
+        const client = new SogniClientWrapper({
+          username: credentials.username as string,
+          password: credentials.password as string,
+          appId,
+          autoConnect: true,
+          debug: false,
+        });
+
+        try {
+          const search = ((this.getCurrentNodeParameter('llmModelSearch') as string) || '')
+            .trim()
+            .toLowerCase();
+
+          let models: Record<string, any>;
+          try {
+            models = await client.waitForChatModels(10000);
+          } catch {
+            models = await client.getAvailableChatModels();
+          }
+
+          const options: INodePropertyOptions[] = Object.entries(models)
+            .filter(([modelId, info]) => {
+              if (!search) return true;
+              const provider = String((info as any)?.provider || '').toLowerCase();
+              const label = String((info as any)?.label || '').toLowerCase();
+              return (
+                modelId.toLowerCase().includes(search) ||
+                provider.includes(search) ||
+                label.includes(search)
+              );
+            })
+            .map(([modelId, info]) => {
+              const workers = (info as any)?.workers ?? 0;
+              const badge = workers ? ` • ${workers} workers` : '';
+              return {
+                name: `${modelId}${badge}${workers > 0 ? ' (available)' : ''}`,
+                value: modelId,
+                description:
+                  (info as any)?.description ||
+                  (info as any)?.label ||
+                  (info as any)?.provider ||
+                  undefined,
+              };
+            });
+
+          if (options.length === 0) {
+            options.push({
+              name: 'No LLM models available - check back later',
+              value: '',
+              description: 'Chat models are not currently available for this account/session',
+            });
+          }
+
+          return options;
+        } finally {
+          await safeDisconnect(client, {
+            label: 'loadOptions:getChatModelOptions',
             appId,
             timeoutMs: 2000,
           });
@@ -2452,6 +2638,57 @@ export class Sogni implements INodeType {
                 parameters: estimateParams,
                 estimate,
               },
+            });
+          } else if (resource === 'llm' && operation === 'generate') {
+            const model = this.getNodeParameter('llmModelId', i) as string;
+            const prompt = this.getNodeParameter('llmPrompt', i) as string;
+            const systemPrompt = (this.getNodeParameter('llmSystemPrompt', i, '') as string).trim();
+            const additional = (this.getNodeParameter('llmAdditionalFields', i, {}) as any) || {};
+            const maxTokens = additional.maxTokens as number | undefined;
+            const think = additional.think ?? false;
+            const tokenType = (additional.tokenType ?? 'spark') as 'spark' | 'sogni';
+
+            await client.waitForChatModels(15000);
+
+            const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
+            if (systemPrompt) {
+              messages.push({ role: 'system', content: systemPrompt });
+            }
+            messages.push({ role: 'user', content: prompt });
+
+            const result = await client.createChatCompletion({
+              model,
+              messages,
+              max_tokens:
+                typeof maxTokens === 'number' && !Number.isNaN(maxTokens) ? maxTokens : undefined,
+              think,
+              tokenType,
+            } as any);
+
+            returnData.push({
+              json: {
+                modelId: model,
+                prompt,
+                systemPrompt: systemPrompt || undefined,
+                content: (result as any).content || '',
+                finishReason: (result as any).finishReason,
+                jobId: (result as any).jobID,
+                toolCalls: (result as any).tool_calls,
+                usage: (result as any).usage,
+                response: result,
+              },
+            });
+          } else if (resource === 'llm' && operation === 'getAll') {
+            const models = await client.waitForChatModels(15000);
+
+            Object.entries(models).forEach(([id, info]) => {
+              returnData.push({
+                json: {
+                  id,
+                  workerCount: (info as any)?.workers ?? 0,
+                  ...info,
+                },
+              });
             });
           } else if (resource === 'model' && operation === 'getAll') {
             // Get All Models

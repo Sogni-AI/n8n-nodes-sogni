@@ -203,6 +203,17 @@ async function runTests() {
     if (!accountResource) throw new Error('Account resource not found');
   })();
 
+  // Test 21b: LLM resource operations
+  await test('Should have llm resource with operations', () => {
+    const node = new Sogni();
+    const resourceProp = node.description.properties.find(p => p.name === 'resource');
+    if (!resourceProp || !resourceProp.options) {
+      throw new Error('Resource options not found');
+    }
+    const llmResource = resourceProp.options.find((o: any) => o.value === 'llm');
+    if (!llmResource) throw new Error('LLM resource not found');
+  })();
+
   // Test 22: Model ID parameter for image generation
   await test('Should have modelId parameter for image generation', () => {
     const node = new Sogni();
@@ -332,6 +343,42 @@ async function runTests() {
     if (!estimateCostOperation) {
       throw new Error('estimateCost operation not found for video resource');
     }
+  })();
+
+  // Test 33: LLM operation includes generate
+  await test('Should have generate operation for llm resource', () => {
+    const node = new Sogni();
+    const operationProps = node.description.properties.filter(p => p.name === 'operation');
+    const llmOperationProp = operationProps.find(p =>
+      p.displayOptions?.show?.resource?.includes('llm')
+    );
+    if (!llmOperationProp || !llmOperationProp.options) {
+      throw new Error('LLM operation property not found');
+    }
+    const generateOperation = llmOperationProp.options.find((o: any) => o.value === 'generate');
+    if (!generateOperation) {
+      throw new Error('generate operation not found for llm resource');
+    }
+  })();
+
+  // Test 34: LLM Model ID parameter
+  await test('Should have llmModelId parameter for llm generate', () => {
+    const node = new Sogni();
+    const modelIdProp = node.description.properties.find(
+      p => p.name === 'llmModelId' && p.displayOptions?.show?.resource?.includes('llm')
+    );
+    if (!modelIdProp) throw new Error('llmModelId parameter not found for llm generation');
+    if (!modelIdProp.required) throw new Error('llmModelId should be required');
+  })();
+
+  // Test 35: LLM prompt parameter
+  await test('Should have llmPrompt parameter for llm generate', () => {
+    const node = new Sogni();
+    const promptProp = node.description.properties.find(
+      p => p.name === 'llmPrompt' && p.displayOptions?.show?.resource?.includes('llm')
+    );
+    if (!promptProp) throw new Error('llmPrompt parameter not found for llm generation');
+    if (!promptProp.required) throw new Error('llmPrompt should be required');
   })();
 
   // Summary

@@ -1,8 +1,8 @@
 # n8n-nodes-sogni
 
-**Enhanced n8n Community Node for Sogni AI Image & Video Generation**
+**Enhanced n8n Community Node for Sogni AI Image, Video & LLM Generation**
 
-Generate AI images and videos using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation, **video generation capabilities**, and **Qwen Image Edit** for multi-reference image editing.
+Generate AI images, videos, and LLM responses using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation, **video generation capabilities**, **Qwen Image Edit** for multi-reference image editing, and **Sogni LLM chat generation** for text workflows.
 
 This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
@@ -68,6 +68,10 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 #### Video Resource
 - **Generate**: Create AI videos with customizable parameters
 - **Estimate Cost**: Estimate token/USD cost before generation
+
+#### LLM Resource
+- **Generate**: Create text responses with Sogni chat models
+- **Get All**: List all available Sogni LLM/chat models
 
 #### Model Resource
 - **Get All**: List all available models
@@ -382,6 +386,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 9. **WAN Animate-Replace with SAM2** - Subject-guided video replacement with reference image + source video
 10. **LTX-2 Text-to-Video** - Minimal prompt-only LTX t2v workflow
 11. **LTX 2.3 Dynamic Text-to-Video** - Auto-select an available `ltx23-*` model before generation
+12. **Sogni LLM Artist Poem Emailer** - Ask for an artist name, auto-select an available chat model, generate a witty rhyming poem, and email it out
 
 ---
 
@@ -673,7 +678,12 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.4.2 (Current)
+### v1.5.0 (Current)
+- 🤖 Added `LLM` resource support with `Generate` and `Get All` chat model operations
+- 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.6.0`
+- 🧪 Added Sogni LLM email workflow example (`examples/12-sogni-llm-artist-poem-email.json`)
+
+### v1.4.2
 - 🧪 Added dedicated LTX-2 text-to-video example workflow (`examples/10-ltx2-text-to-video.json`)
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.5.2`
 - 🎬 Added `ltx23-*` / `ltx2.3-*` video model detection and LTX frame normalization coverage
