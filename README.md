@@ -678,7 +678,10 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.5.0 (Current)
+### v1.5.1 (Current)
+- 📝 Fixed the sample LLM poem email workflow to read artist names correctly from n8n Form Trigger submissions
+
+### v1.5.0
 - 🤖 Added `LLM` resource support with `Generate` and `Get All` chat model operations
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.6.0`
 - 🧪 Added Sogni LLM email workflow example (`examples/12-sogni-llm-artist-poem-email.json`)
