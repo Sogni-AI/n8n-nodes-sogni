@@ -10,7 +10,41 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 
 ---
 
-## 🆕 What's New
+## 🆕 What's New Since v1.3.0
+
+### 🤖 LLM + Vision Workflows (v1.5.x)
+- Added a full **LLM** resource with:
+  - `Generate`
+  - `Get All`
+- Added advanced chat request fields for:
+  - `Messages JSON`
+  - `Tools JSON`
+  - `Tool Choice JSON`
+- Preserved incoming item JSON in `LLM -> Generate` outputs so multi-step or looped workflows can keep state across turns
+- Extended chat model lookup timeouts to make LLM workflows more reliable on slower connections
+- Added example workflows for:
+  - **Person Poem Page** using an n8n Form Trigger and completion page
+  - **Uploaded Image Description** using the documented `qwen3.5-35b-a3b-gguf-q4km` VLM path
+- Hardened the uploaded-image example around n8n Form Trigger binary handling and bundled `examples/duck.jpg` as a quick vision test image
+
+### 🎬 Expanded Video Workflows (v1.4.x)
+- Added **Video → Estimate Cost**
+- Improved model detection for:
+  - `ltx2-*`
+  - `ltx23-*`
+  - `ltx2.3-*`
+  - `wan_*`
+- Added advanced LTX/WAN workflow inputs such as:
+  - reference video
+  - reference audio
+  - SAM2 inputs
+  - keyframe strengths
+  - video ControlNet
+- Added bundled examples for:
+  - minimal LTX-2 text-to-video
+  - dynamic LTX 2.3 model selection
+  - WAN animate-replace with SAM2
+  - LTX-2 video-to-video ControlNet
 
 ### 🖼️ Live Image Edit with Qwen (v1.3.0)
 
@@ -680,28 +714,19 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 ## Version History
 
 ### v1.5.5 (Current)
-- 📚 Refreshed README and example docs for the current bundled LLM workflows
-- 🖼️ Hardened the uploaded-image vision example around n8n Form Trigger binary handling and the documented `qwen3.5-35b-a3b-gguf-q4km` VLM path
-- 🧪 Added a bundled sample upload image (`examples/duck.jpg`) for quick vision workflow testing
-- ⏱️ Kept the longer chat-model lookup timeouts for more reliable LLM workflow startup
-
-### v1.5.3
-- ⏱️ Extended Sogni chat-model lookup timeouts to reduce `Connection timeout` failures in LLM workflows
-- 🧠 Preserved incoming item JSON in `LLM -> Generate` results so looped/stateful workflows can carry execution state forward
-- 🧪 Simplified the bundled LLM examples to keep the person-poem and uploaded-image workflows aligned with the current example set
-
-### v1.5.2
-- 🧠 Added `Messages JSON`, `Tools JSON`, and `Tool Choice JSON` for advanced Sogni LLM chat and tool-calling workflows
-- 🧪 Added object guessing game and uploaded-image description example workflows
-- 📝 Updated the sample poem and image examples to use n8n form completion pages instead of unsupported webhook responses
-
-### v1.5.1
-- 📝 Fixed the sample LLM poem workflow to read person names correctly from n8n Form Trigger submissions
-
-### v1.5.0
-- 🤖 Added `LLM` resource support with `Generate` and `Get All` chat model operations
+- 🤖 Added support for **Sogni Intelligence** with Sogni LLM models like **Qwen3.5**, including `Generate` and `Get All` chat model operations
+- 🧠 Added advanced chat inputs:
+  - `Messages JSON`
+  - `Tools JSON`
+  - `Tool Choice JSON`
+- 🧩 Preserved incoming item JSON in `LLM -> Generate` outputs so looped/stateful workflows can carry execution state forward
+- ⏱️ Extended chat-model lookup timeouts for more reliable LLM workflow startup
+- 🧪 Added bundled LLM example workflows for:
+  - person poem generation with n8n forms and completion pages
+  - uploaded-image description using the documented Qwen3.5 VLM path
+- 🖼️ Added a bundled sample upload image (`examples/duck.jpg`) for quick vision workflow testing
+- 📚 Refreshed README and example docs around the current LLM and vision workflows
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.6.0`
-- 🧪 Added a Sogni LLM poem workflow example (`examples/12-sogni-llm-artist-poem-email.json`)
 
 ### v1.4.2
 - 🧪 Added dedicated LTX-2 text-to-video example workflow (`examples/10-ltx2-text-to-video.json`)
