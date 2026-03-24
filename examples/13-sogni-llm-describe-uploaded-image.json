@@ -47,29 +47,14 @@
     },
     {
       "parameters": {
-        "resource": "llm",
-        "operation": "getAll"
-      },
-      "id": "get-llm-models",
-      "name": "Get All LLM Models",
-      "type": "n8n-nodes-sogni.sogni",
-      "typeVersion": 1,
-      "position": [
-        420,
-        280
-      ],
-      "notes": "Fetches available Sogni chat models"
-    },
-    {
-      "parameters": {
-        "jsCode": "const models = $input.all()\n  .map((item) => item.json)\n  .sort((a, b) => (b.workerCount || 0) - (a.workerCount || 0));\n\nif (models.length === 0) {\n  throw new Error('No Sogni LLM models are available right now. Try again later.');\n}\n\nconst uploadItem = $('Upload Image').first();\nconst binaryInfo = uploadItem.binary?.artistImage;\nif (!binaryInfo) {\n  throw new Error('No uploaded image was found in binary.artistImage.');\n}\n\nconst mimeType = binaryInfo.mimeType || 'image/png';\nconst fileName = binaryInfo.fileName || 'uploaded-image';\nconst imageBuffer = await this.helpers.getBinaryDataBuffer(0, 'artistImage');\nconst dataUrl = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;\n\nconst bestModel = models[0];\nconst messages = [\n  {\n    role: 'system',\n    content: 'You are a concise visual describer. Describe the uploaded image clearly, mention notable subjects, setting, colors, style, and any readable text. If uncertain, say so.'\n  },\n  {\n    role: 'user',\n    content: [\n      {\n        type: 'text',\n        text: 'Describe this uploaded image in 120 words or less.'\n      },\n      {\n        type: 'image_url',\n        image_url: {\n          url: dataUrl,\n          detail: 'high'\n        }\n      }\n    ]\n  }\n];\n\nreturn {\n  json: {\n    fileName,\n    mimeType,\n    modelId: bestModel.id,\n    modelName: bestModel.label || bestModel.id,\n    workerCount: bestModel.workerCount || 0,\n    messages\n  }\n};"
+        "jsCode": "const uploadItem = $input.first();\nconst binaryEntries = Object.entries(uploadItem.binary || {});\n\nconst preferredKeys = ['artistImage', 'Image Upload', 'Image_Upload'];\nconst preferredEntry = preferredKeys\n  .map((key) => [key, uploadItem.binary?.[key]])\n  .find(([, value]) => value);\n\nconst imageEntry = preferredEntry || binaryEntries.find(([, value]) => {\n  const mimeType = String(value?.mimeType || '').toLowerCase();\n  return mimeType.startsWith('image/');\n});\n\nif (!imageEntry) {\n  const binaryKeys = binaryEntries.map(([key]) => key).join(', ') || '(none)';\n  throw new Error(`No uploaded image was found. Binary keys seen: ${binaryKeys}`);\n}\n\nconst [binaryPropertyName, binaryInfo] = imageEntry;\nconst rawMimeType = String(binaryInfo.mimeType || 'image/png').toLowerCase();\nconst supportedMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);\nif (!supportedMimeTypes.has(rawMimeType)) {\n  throw new Error(\n    `Unsupported uploaded image MIME type: ${rawMimeType}. Use JPEG, PNG, WebP, or GIF.`\n  );\n}\n\nconst mimeType = rawMimeType === 'image/jpg' ? 'image/jpeg' : rawMimeType;\nconst fileName = binaryInfo.fileName || binaryPropertyName || 'uploaded-image';\n\nlet base64Data = '';\ntry {\n  const imageBuffer = await this.helpers.getBinaryDataBuffer(0, binaryPropertyName);\n  base64Data = imageBuffer.toString('base64');\n} catch (error) {\n  const inlineData = typeof binaryInfo.data === 'string' ? binaryInfo.data.trim() : '';\n  if (inlineData) {\n    base64Data = inlineData.replace(/\\s+/g, '');\n  } else {\n    const message = error instanceof Error ? error.message : String(error);\n    throw new Error(\n      `Found uploaded image at binary.${binaryPropertyName}, but could not read its data. ${message}`\n    );\n  }\n}\n\nif (!/^[A-Za-z0-9+/=]+$/.test(base64Data)) {\n  throw new Error(`Uploaded image data for ${binaryPropertyName} is not valid base64.`);\n}\n\nconst estimatedBytes = Math.floor((base64Data.length * 3) / 4);\nconst maxRecommendedBytes = 20 * 1024 * 1024;\nif (estimatedBytes > maxRecommendedBytes) {\n  throw new Error(\n    `Uploaded image is too large for vision chat (${Math.round(estimatedBytes / (1024 * 1024))} MB). Keep it under 20 MB.`\n  );\n}\n\nconst modelId = 'qwen3.5-35b-a3b-gguf-q4km';\nconst modelSelectionReason = 'Using the documented Sogni VLM model directly to keep the uploaded binary on the active item stream.';\nconst dataUrl = `data:${mimeType};base64,${base64Data}`;\nconst messages = [\n  {\n    role: 'system',\n    content: 'You are a concise visual describer. Describe the uploaded image clearly, mention notable subjects, setting, colors, style, and any readable text. If uncertain, say so.'\n  },\n  {\n    role: 'user',\n    content: [\n      {\n        type: 'image_url',\n        image_url: {\n          url: dataUrl,\n          detail: 'low'\n        }\n      },\n      {\n        type: 'text',\n        text: 'Describe this uploaded image in 120 words or less.'\n      }\n    ]\n  }\n];\n\nreturn {\n  json: {\n    fileName,\n    mimeType,\n    binaryPropertyName,\n    imageBytesEstimated: estimatedBytes,\n    dataUrlPrefix: dataUrl.slice(0, 80),\n    modelId,\n    modelName: modelId,\n    modelSelectionReason,\n    messages\n  }\n};"
       },
       "id": "build-vision-request",
       "name": "Build Vision Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
+        420,
         280
       ],
       "notes": "Converts the uploaded file into a data URL and builds a multimodal chat request"
@@ -91,7 +76,7 @@
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [
-        1020,
+        700,
         280
       ],
       "notes": "Runs a vision-style Sogni LLM description request"
@@ -105,7 +90,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1300,
+        980,
         280
       ],
       "notes": "Builds the browser response page for the image description"
@@ -122,7 +107,7 @@
       "type": "n8n-nodes-base.form",
       "typeVersion": 2.3,
       "position": [
-        1560,
+        1260,
         280
       ],
       "notes": "Shows the generated description using the built-in n8n form completion page"
@@ -130,17 +115,6 @@
   ],
   "connections": {
     "Upload Image": {
-      "main": [
-        [
-          {
-            "node": "Get All LLM Models",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get All LLM Models": {
       "main": [
         [
           {
