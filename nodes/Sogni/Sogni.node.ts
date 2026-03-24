@@ -44,6 +44,9 @@ function debugLogAppId(message: string): void {
   console.log(`[Sogni] ${message}`);
 }
 
+const CHAT_MODEL_LOAD_OPTIONS_TIMEOUT_MS = 30000;
+const CHAT_MODEL_EXECUTION_TIMEOUT_MS = 45000;
+
 /**
  * Promise helper: ensures we don't hang forever during disconnect/cleanup.
  */
@@ -1862,7 +1865,7 @@ export class Sogni implements INodeType {
 
           let models: Record<string, any>;
           try {
-            models = await client.waitForChatModels(10000);
+            models = await client.waitForChatModels(CHAT_MODEL_LOAD_OPTIONS_TIMEOUT_MS);
           } catch {
             models = await client.getAvailableChatModels();
           }
@@ -2690,7 +2693,7 @@ export class Sogni implements INodeType {
             const toolChoiceJson = String(additional.toolChoiceJson ?? '').trim();
             const tokenType = (additional.tokenType ?? 'spark') as 'spark' | 'sogni';
 
-            await client.waitForChatModels(15000);
+            await client.waitForChatModels(CHAT_MODEL_EXECUTION_TIMEOUT_MS);
 
             const messages = messagesJson
               ? parseJsonParameter<any[]>(messagesJson, 'Messages JSON')
@@ -2732,8 +2735,11 @@ export class Sogni implements INodeType {
               tokenType,
             } as any);
 
+            const inputJson = items[i]?.json ?? {};
+
             returnData.push({
               json: {
+                ...inputJson,
                 modelId: model,
                 prompt,
                 systemPrompt: systemPrompt || undefined,
@@ -2749,7 +2755,7 @@ export class Sogni implements INodeType {
               },
             });
           } else if (resource === 'llm' && operation === 'getAll') {
-            const models = await client.waitForChatModels(15000);
+            const models = await client.waitForChatModels(CHAT_MODEL_EXECUTION_TIMEOUT_MS);
 
             Object.entries(models).forEach(([id, info]) => {
               returnData.push({

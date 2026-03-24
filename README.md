@@ -387,8 +387,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 10. **LTX-2 Text-to-Video** - Minimal prompt-only LTX t2v workflow
 11. **LTX 2.3 Dynamic Text-to-Video** - Auto-select an available `ltx23-*` model before generation
 12. **Sogni LLM Person Poem Page** - Ask for a person's name, auto-select an available chat model, generate a witty rhyming poem, and show it on n8n's completion page
-13. **Sogni LLM Tool Calling Object Guessing Game** - Pick a secret object from a built-in catalog and let Sogni LLM try to guess it in 20 tool-calling moves
-14. **Sogni LLM Describe Uploaded Image** - Upload an image in a form, convert it to a multimodal vision request, and show the generated description on n8n's completion page
+13. **Sogni LLM Describe Uploaded Image** - Upload an image in a form, convert it to a multimodal vision request, and show the generated description on n8n's completion page
 
 ---
 
@@ -680,7 +679,12 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.5.2 (Current)
+### v1.5.3 (Current)
+- ⏱️ Extended Sogni chat-model lookup timeouts to reduce `Connection timeout` failures in LLM workflows
+- 🧠 Preserved incoming item JSON in `LLM -> Generate` results so looped/stateful workflows can carry execution state forward
+- 🧪 Simplified the bundled LLM examples to keep the person-poem and uploaded-image workflows aligned with the current example set
+
+### v1.5.2
 - 🧠 Added `Messages JSON`, `Tools JSON`, and `Tool Choice JSON` for advanced Sogni LLM chat and tool-calling workflows
 - 🧪 Added object guessing game and uploaded-image description example workflows
 - 📝 Updated the sample poem and image examples to use n8n form completion pages instead of unsupported webhook responses

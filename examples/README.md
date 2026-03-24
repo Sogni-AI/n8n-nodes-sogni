@@ -203,24 +203,8 @@ Generate a short rhyming witty poem about a named person with a Sogni LLM model 
 
 ---
 
-### 13. Sogni LLM Tool Calling Object Guessing Game
-**File**: `13-sogni-llm-tool-calling-object-guessing-game.json`
-
-Demonstrates a multi-turn tool-calling guessing game where Sogni LLM tries to identify a secret object in 20 moves.
-
-**Features:**
-- Form trigger for choosing a secret object from a built-in catalog
-- Fetches all available Sogni LLM models first
-- Uses repeated `ask_question` and `make_guess` tool calls across multiple turns
-- Executes the local game-master tool in an n8n Code node
-- Loops until the model guesses correctly or runs out of moves, then shows the transcript on the completion page
-
-**Use Case**: Learning iterative LLM tool calling, local tool execution, looped agent-style workflows
-
----
-
-### 14. Sogni LLM Describe Uploaded Image
-**File**: `14-sogni-llm-describe-uploaded-image.json`
+### 13. Sogni LLM Describe Uploaded Image
+**File**: `13-sogni-llm-describe-uploaded-image.json`
 
 Drag an image into an n8n form and have Sogni LLM describe it on n8n's built-in completion page.
 
