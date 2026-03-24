@@ -187,19 +187,50 @@ Find an available `ltx23-*` model dynamically, then run text-to-video with safe 
 
 ---
 
-### 12. Sogni LLM Artist Poem Emailer
+### 12. Sogni LLM Person Poem Page
 **File**: `12-sogni-llm-artist-poem-email.json`
 
-Generate a short rhyming witty poem about a named artist with a Sogni LLM model, then email it out through SMTP.
+Generate a short rhyming witty poem about a named person with a Sogni LLM model and show it on the completion page.
 
 **Features:**
-- Form trigger that asks for an artist name
+- Form trigger that asks for a person's name
 - Fetches all available Sogni LLM models first
 - Chooses the chat model with the highest worker count
-- Generates a concise poem with system + user prompts using the submitted artist name
-- Sends the result via the built-in Send Email node
+- Generates a concise poem with system + user prompts using the submitted person's name
+- Returns the poem on n8n's built-in completion page after the form submission completes
 
-**Use Case**: AI writing automations, email digests, lightweight creative content workflows
+**Use Case**: AI writing automations, interactive lightweight creative content workflows
+
+---
+
+### 13. Sogni LLM Tool Calling Object Guessing Game
+**File**: `13-sogni-llm-tool-calling-object-guessing-game.json`
+
+Demonstrates a multi-turn tool-calling guessing game where Sogni LLM tries to identify a secret object in 20 moves.
+
+**Features:**
+- Form trigger for choosing a secret object from a built-in catalog
+- Fetches all available Sogni LLM models first
+- Uses repeated `ask_question` and `make_guess` tool calls across multiple turns
+- Executes the local game-master tool in an n8n Code node
+- Loops until the model guesses correctly or runs out of moves, then shows the transcript on the completion page
+
+**Use Case**: Learning iterative LLM tool calling, local tool execution, looped agent-style workflows
+
+---
+
+### 14. Sogni LLM Describe Uploaded Image
+**File**: `14-sogni-llm-describe-uploaded-image.json`
+
+Drag an image into an n8n form and have Sogni LLM describe it on n8n's built-in completion page.
+
+**Features:**
+- Form trigger with file upload field
+- Converts uploaded binary image data to a multimodal `image_url` request
+- Uses Sogni LLM to describe the uploaded image
+- Returns the description in the browser after submission
+
+**Use Case**: Vision demos, image captioning flows, lightweight upload-and-describe experiences
 
 ---
 

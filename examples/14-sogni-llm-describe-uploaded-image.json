@@ -1,0 +1,198 @@
+{
+  "name": "Sogni LLM Describe Uploaded Image",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sogni LLM Describe Uploaded Image\n\nDrag an image into the form, submit it, and Sogni LLM will describe what it sees.\n\n### Setup\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Open the form URL from `Upload Image`\n4. Drag an image into the upload field and submit\n\n### Notes\n- This uses a Form Trigger file upload field\n- The workflow converts the uploaded image into a data URL for Sogni vision chat\n- The result is shown on the browser completion page",
+        "height": 400,
+        "width": 360,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        60
+      ],
+      "id": "sticky-vision-info",
+      "name": "Vision Info"
+    },
+    {
+      "parameters": {
+        "formTitle": "Describe My Image",
+        "formDescription": "Upload an image and Sogni LLM will describe it for you.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Image Upload",
+              "fieldName": "artistImage",
+              "fieldType": "file",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "upload-image-form",
+      "name": "Upload Image",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        280
+      ],
+      "webhookId": "describe-uploaded-image-form",
+      "notes": "Submit an uploaded image to trigger the vision example",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "resource": "llm",
+        "operation": "getAll"
+      },
+      "id": "get-llm-models",
+      "name": "Get All LLM Models",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        420,
+        280
+      ],
+      "notes": "Fetches available Sogni chat models"
+    },
+    {
+      "parameters": {
+        "jsCode": "const models = $input.all()\n  .map((item) => item.json)\n  .sort((a, b) => (b.workerCount || 0) - (a.workerCount || 0));\n\nif (models.length === 0) {\n  throw new Error('No Sogni LLM models are available right now. Try again later.');\n}\n\nconst uploadItem = $('Upload Image').first();\nconst binaryInfo = uploadItem.binary?.artistImage;\nif (!binaryInfo) {\n  throw new Error('No uploaded image was found in binary.artistImage.');\n}\n\nconst mimeType = binaryInfo.mimeType || 'image/png';\nconst fileName = binaryInfo.fileName || 'uploaded-image';\nconst imageBuffer = await this.helpers.getBinaryDataBuffer(0, 'artistImage');\nconst dataUrl = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;\n\nconst bestModel = models[0];\nconst messages = [\n  {\n    role: 'system',\n    content: 'You are a concise visual describer. Describe the uploaded image clearly, mention notable subjects, setting, colors, style, and any readable text. If uncertain, say so.'\n  },\n  {\n    role: 'user',\n    content: [\n      {\n        type: 'text',\n        text: 'Describe this uploaded image in 120 words or less.'\n      },\n      {\n        type: 'image_url',\n        image_url: {\n          url: dataUrl,\n          detail: 'high'\n        }\n      }\n    ]\n  }\n];\n\nreturn {\n  json: {\n    fileName,\n    mimeType,\n    modelId: bestModel.id,\n    modelName: bestModel.label || bestModel.id,\n    workerCount: bestModel.workerCount || 0,\n    messages\n  }\n};"
+      },
+      "id": "build-vision-request",
+      "name": "Build Vision Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        280
+      ],
+      "notes": "Converts the uploaded file into a data URL and builds a multimodal chat request"
+    },
+    {
+      "parameters": {
+        "resource": "llm",
+        "operation": "generate",
+        "llmModelId": "={{ $json.modelId }}",
+        "llmPrompt": "Describe the uploaded image in 120 words or less.",
+        "llmAdditionalFields": {
+          "messagesJson": "={{ JSON.stringify($json.messages) }}",
+          "maxTokens": 220,
+          "tokenType": "spark"
+        }
+      },
+      "id": "describe-image",
+      "name": "Describe Image",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        280
+      ],
+      "notes": "Runs a vision-style Sogni LLM description request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst description = String(result.content || '').trim();\n\nif (!description) {\n  throw new Error('The Sogni LLM response was empty.');\n}\n\nconst escapeHtml = (value) => value\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;')\n  .replace(/'/g, '&#39;');\n\nconst fileName = String(result.fileName || 'uploaded image');\nconst modelId = String(result.modelId || 'unknown-model');\nconst descriptionHtml = escapeHtml(description).replace(/\\n/g, '<br>');\n\nreturn {\n  json: {\n    ...result,\n    completionTitle: 'Image Description',\n    completionMessage: `<strong>File:</strong> ${escapeHtml(fileName)}<br><br>${descriptionHtml}<br><br><small>Model: ${escapeHtml(modelId)}</small>`\n  }\n};"
+      },
+      "id": "format-description-page",
+      "name": "Format Description Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        280
+      ],
+      "notes": "Builds the browser response page for the image description"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "={{ $json.completionTitle }}",
+        "completionMessage": "={{ $json.completionMessage }}",
+        "options": {}
+      },
+      "id": "show-description-page",
+      "name": "Show Description Page",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        1560,
+        280
+      ],
+      "notes": "Shows the generated description using the built-in n8n form completion page"
+    }
+  ],
+  "connections": {
+    "Upload Image": {
+      "main": [
+        [
+          {
+            "node": "Get All LLM Models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All LLM Models": {
+      "main": [
+        [
+          {
+            "node": "Build Vision Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Vision Request": {
+      "main": [
+        [
+          {
+            "node": "Describe Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describe Image": {
+      "main": [
+        [
+          {
+            "node": "Format Description Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Description Page": {
+      "main": [
+        [
+          {
+            "node": "Show Description Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

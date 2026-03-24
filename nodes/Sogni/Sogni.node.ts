@@ -226,6 +226,15 @@ function parseContentDispositionFilename(header?: string): string | undefined {
   return undefined;
 }
 
+function parseJsonParameter<T>(raw: string, label: string): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${label} must be valid JSON: ${message}`);
+  }
+}
+
 export class Sogni implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Sogni AI',
@@ -1521,11 +1530,41 @@ export class Sogni implements INodeType {
             typeOptions: { minValue: 1, maxValue: 65536 },
           },
           {
+            displayName: 'Messages JSON',
+            name: 'messagesJson',
+            type: 'string',
+            default: '',
+            typeOptions: { rows: 6 },
+            description:
+              'Optional full chat messages array as JSON. When set, this overrides Prompt and System Prompt.',
+            placeholder:
+              '[{"role":"system","content":"You are concise."},{"role":"user","content":"Hello"}]',
+          },
+          {
             displayName: 'Thinking',
             name: 'think',
             type: 'boolean',
             default: false,
             description: 'Whether to enable reasoning for models that support it',
+          },
+          {
+            displayName: 'Tools JSON',
+            name: 'toolsJson',
+            type: 'string',
+            default: '',
+            typeOptions: { rows: 6 },
+            description: 'Optional OpenAI-style tools array as JSON for custom tool calling',
+            placeholder:
+              '[{"type":"function","function":{"name":"get_time","description":"Get current time","parameters":{"type":"object","properties":{"timezone":{"type":"string"}},"required":["timezone"]}}}]',
+          },
+          {
+            displayName: 'Tool Choice JSON',
+            name: 'toolChoiceJson',
+            type: 'string',
+            default: '',
+            description:
+              'Optional tool choice. Use `auto`, `none`, `required`, or a JSON object such as {"type":"function","function":{"name":"my_tool"}}',
+            placeholder: 'auto',
           },
           {
             displayName: 'Token Type',
@@ -2645,20 +2684,48 @@ export class Sogni implements INodeType {
             const systemPrompt = (this.getNodeParameter('llmSystemPrompt', i, '') as string).trim();
             const additional = (this.getNodeParameter('llmAdditionalFields', i, {}) as any) || {};
             const maxTokens = additional.maxTokens as number | undefined;
+            const messagesJson = String(additional.messagesJson ?? '').trim();
             const think = additional.think ?? false;
+            const toolsJson = String(additional.toolsJson ?? '').trim();
+            const toolChoiceJson = String(additional.toolChoiceJson ?? '').trim();
             const tokenType = (additional.tokenType ?? 'spark') as 'spark' | 'sogni';
 
             await client.waitForChatModels(15000);
 
-            const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
-            if (systemPrompt) {
-              messages.push({ role: 'system', content: systemPrompt });
+            const messages = messagesJson
+              ? parseJsonParameter<any[]>(messagesJson, 'Messages JSON')
+              : (() => {
+                  const baseMessages: Array<{ role: 'system' | 'user'; content: string }> = [];
+                  if (systemPrompt) {
+                    baseMessages.push({ role: 'system', content: systemPrompt });
+                  }
+                  baseMessages.push({ role: 'user', content: prompt });
+                  return baseMessages;
+                })();
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+              throw new Error('Messages JSON must be a non-empty array when provided');
             }
-            messages.push({ role: 'user', content: prompt });
+
+            const tools = toolsJson ? parseJsonParameter<any[]>(toolsJson, 'Tools JSON') : undefined;
+            if (toolsJson && !Array.isArray(tools)) {
+              throw new Error('Tools JSON must be an array when provided');
+            }
+
+            let toolChoice: any = undefined;
+            if (toolChoiceJson) {
+              if (toolChoiceJson === 'auto' || toolChoiceJson === 'none' || toolChoiceJson === 'required') {
+                toolChoice = toolChoiceJson;
+              } else {
+                toolChoice = parseJsonParameter<any>(toolChoiceJson, 'Tool Choice JSON');
+              }
+            }
 
             const result = await client.createChatCompletion({
               model,
               messages,
+              tools,
+              tool_choice: toolChoice,
               max_tokens:
                 typeof maxTokens === 'number' && !Number.isNaN(maxTokens) ? maxTokens : undefined,
               think,
@@ -2670,6 +2737,9 @@ export class Sogni implements INodeType {
                 modelId: model,
                 prompt,
                 systemPrompt: systemPrompt || undefined,
+                messages,
+                tools,
+                toolChoice,
                 content: (result as any).content || '',
                 finishReason: (result as any).finishReason,
                 jobId: (result as any).jobID,

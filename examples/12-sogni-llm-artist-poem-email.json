@@ -1,9 +1,9 @@
 {
-  "name": "Sogni LLM Artist Poem Emailer",
+  "name": "Sogni LLM Person Poem Page",
   "nodes": [
     {
       "parameters": {
-        "content": "## Sogni LLM Artist Poem Emailer\n\nGenerate a short rhyming witty poem about a named artist with Sogni LLM, then email it out.\n\n### Setup\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Add SMTP credentials to `Send Email`\n4. Update the `fromEmail` and `toEmail` placeholders\n5. Open the form URL from `Ask For Artist Name`\n6. Submit an artist name to run the workflow\n\n### Notes\n- This workflow picks the available chat model with the most workers\n- It asks for an artist name first, then uses that in the poem prompt\n- Update the prompt in `Select Chat Model + Prompt` if you want a different rhyme style",
+        "content": "## Sogni LLM Person Poem Page\n\nGenerate a short rhyming witty poem about a named person with Sogni LLM and show it on the completion page.\n\n### Setup\n1. Install `n8n-nodes-sogni`\n2. Add Sogni credentials\n3. Open the form URL from `Ask For Person Name`\n4. Submit a person's name to run the workflow\n\n### Notes\n- This workflow picks the available chat model with the most workers\n- It asks for a person's name first, then uses that in the poem prompt\n- After submission, n8n shows the generated poem on the built-in n8n completion page\n- Update the prompt in `Select Chat Model + Prompt` if you want a different rhyme style",
         "height": 420,
         "width": 360,
         "color": 5
@@ -19,31 +19,31 @@
     },
     {
       "parameters": {
-        "formTitle": "Artist Poem Request",
-        "formDescription": "Enter an artist name and Sogni LLM will write a short witty rhyming poem, then email it to you.",
+        "formTitle": "Person Poem Request",
+        "formDescription": "Enter a person's name and Sogni LLM will write a short witty rhyming poem and show it to you.",
         "formFields": {
           "values": [
             {
-              "fieldLabel": "Artist Name",
-              "fieldName": "artistName",
+              "fieldLabel": "Person Name",
+              "fieldName": "personName",
               "fieldType": "text",
-              "placeholder": "e.g. Frida Kahlo",
+              "placeholder": "e.g. David Bowie",
               "requiredField": true
             }
           ]
         },
         "options": {}
       },
-      "id": "artist-form-trigger",
-      "name": "Ask For Artist Name",
+      "id": "person-form-trigger",
+      "name": "Ask For Person Name",
       "type": "n8n-nodes-base.formTrigger",
       "typeVersion": 2.2,
       "position": [
         220,
         280
       ],
-      "webhookId": "artist-poem-request-form",
-      "notes": "Submit the form with an artist name to trigger the poem email workflow",
+      "webhookId": "person-poem-request-form",
+      "notes": "Submit the form with a person's name to trigger the poem workflow",
       "notesInFlow": true
     },
     {
@@ -63,7 +63,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const models = $input.all()\n  .map((item) => item.json)\n  .sort((a, b) => (b.workerCount || 0) - (a.workerCount || 0));\n\nif (models.length === 0) {\n  throw new Error('No Sogni LLM models are available right now. Try again later.');\n}\n\nconst triggerJson = $('Ask For Artist Name').first().json || {};\nconst artistName = String(\n  triggerJson.artistName ??\n  triggerJson['Artist Name'] ??\n  triggerJson.body?.artistName ??\n  triggerJson.body?.['Artist Name'] ??\n  triggerJson.formData?.artistName ??\n  triggerJson.formData?.['Artist Name'] ??\n  ''\n).trim();\n\nif (!artistName) {\n  throw new Error(`Artist name is required. Trigger keys seen: ${Object.keys(triggerJson).join(', ') || '(none)'}`);\n}\n\nconst bestModel = models[0];\n\nreturn {\n  json: {\n    artistName,\n    modelId: bestModel.id,\n    modelName: bestModel.label || bestModel.id,\n    workerCount: bestModel.workerCount || 0,\n    prompt: `Write a short witty rhyming poem about ${artistName}. Keep it to six lines or fewer, clever, warm, and email-friendly. Mention the artist by name.`,\n    systemPrompt: 'You are a concise poet. Reply in plain text only with the poem. No title, no markdown, no preamble, no closing signature.',\n    emailSubject: `Sogni LLM poem for ${artistName}`\n  }\n};"
+        "jsCode": "const models = $input.all()\n  .map((item) => item.json)\n  .sort((a, b) => (b.workerCount || 0) - (a.workerCount || 0));\n\nif (models.length === 0) {\n  throw new Error('No Sogni LLM models are available right now. Try again later.');\n}\n\nconst triggerJson = $('Ask For Person Name').first().json || {};\nconst personName = String(\n  triggerJson.personName ??\n  triggerJson['Person Name'] ??\n  triggerJson.body?.personName ??\n  triggerJson.body?.['Person Name'] ??\n  triggerJson.formData?.personName ??\n  triggerJson.formData?.['Person Name'] ??\n  ''\n).trim();\n\nif (!personName) {\n  throw new Error(`Person name is required. Trigger keys seen: ${Object.keys(triggerJson).join(', ') || '(none)'}`);\n}\n\nconst bestModel = models[0];\n\nreturn {\n  json: {\n    personName,\n    modelId: bestModel.id,\n    modelName: bestModel.label || bestModel.id,\n    workerCount: bestModel.workerCount || 0,\n    prompt: `Write a short witty rhyming poem about ${personName}. Keep it to six lines or fewer, clever, warm, and email-friendly. Mention the person by name.`,\n    systemPrompt: 'You are a concise poet. Reply in plain text only with the poem. No title, no markdown, no preamble, no closing signature.'\n  }\n};"
       },
       "id": "select-chat-model-and-prompt",
       "name": "Select Chat Model + Prompt",
@@ -87,8 +87,8 @@
           "tokenType": "spark"
         }
       },
-      "id": "write-artist-poem",
-      "name": "Write Artist Poem",
+      "id": "write-person-poem",
+      "name": "Write Person Poem",
       "type": "n8n-nodes-sogni.sogni",
       "typeVersion": 1,
       "position": [
@@ -99,39 +99,38 @@
     },
     {
       "parameters": {
-        "jsCode": "const poem = String($json.content || '').trim();\n\nif (!poem) {\n  throw new Error('The Sogni LLM response was empty.');\n}\n\nconst escapeHtml = (value) => value\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;')\n  .replace(/'/g, '&#39;');\n\nconst modelId = String($json.modelId || 'unknown-model');\nconst artistName = String($json.artistName || 'this artist');\nconst poemHtml = escapeHtml(poem).replace(/\\n/g, '<br>');\n\nreturn {\n  json: {\n    ...$json,\n    emailSubject: `Sogni LLM poem for ${artistName} (${modelId})`,\n    emailHtml: `<p>Fresh from Sogni LLM for <strong>${escapeHtml(artistName)}</strong>:</p><p style=\"font-family: Georgia, serif; line-height: 1.6;\">${poemHtml}</p><p><small>Model: ${escapeHtml(modelId)}</small></p>`\n  }\n};"
+        "jsCode": "const poem = String($json.content || '').trim();\n\nif (!poem) {\n  throw new Error('The Sogni LLM response was empty.');\n}\n\nconst personName = String($json.personName || 'this person');\nconst modelId = String($json.modelId || 'unknown-model');\nconst poemWithBreaks = poem.replace(/\\n/g, '<br>');\n\nreturn {\n  json: {\n    ...$json,\n    completionTitle: `Poem for ${personName}`,\n    completionMessage: `${poemWithBreaks}<br><br><small>Model: ${modelId}</small>`\n  }\n};"
       },
-      "id": "format-email",
-      "name": "Format Email",
+      "id": "format-page",
+      "name": "Format Page",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1280,
         280
       ],
-      "notes": "Formats the generated poem as HTML for email delivery"
+      "notes": "Formats the generated poem for the n8n form completion page"
     },
     {
       "parameters": {
-        "fromEmail": "Sogni Poetry Bot <YOUR_EMAIL@example.com>",
-        "toEmail": "YOUR_EMAIL@example.com",
-        "subject": "={{ $json.emailSubject }}",
-        "html": "={{ $json.emailHtml }}",
+        "operation": "completion",
+        "completionTitle": "={{ $json.completionTitle }}",
+        "completionMessage": "={{ $json.completionMessage }}",
         "options": {}
       },
-      "id": "send-email",
-      "name": "Send Email",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
+      "id": "show-poem-page",
+      "name": "Show Poem Page",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
       "position": [
         1520,
         280
       ],
-      "notes": "Requires SMTP credentials and sends the poem to your inbox"
+      "notes": "Shows the generated poem using the built-in n8n form completion page"
     }
   ],
   "connections": {
-    "Ask For Artist Name": {
+    "Ask For Person Name": {
       "main": [
         [
           {
@@ -157,29 +156,29 @@
       "main": [
         [
           {
-            "node": "Write Artist Poem",
+            "node": "Write Person Poem",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Write Artist Poem": {
+    "Write Person Poem": {
       "main": [
         [
           {
-            "node": "Format Email",
+            "node": "Format Page",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Email": {
+    "Format Page": {
       "main": [
         [
           {
-            "node": "Send Email",
+            "node": "Show Poem Page",
             "type": "main",
             "index": 0
           }

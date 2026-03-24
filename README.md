@@ -386,7 +386,9 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 9. **WAN Animate-Replace with SAM2** - Subject-guided video replacement with reference image + source video
 10. **LTX-2 Text-to-Video** - Minimal prompt-only LTX t2v workflow
 11. **LTX 2.3 Dynamic Text-to-Video** - Auto-select an available `ltx23-*` model before generation
-12. **Sogni LLM Artist Poem Emailer** - Ask for an artist name, auto-select an available chat model, generate a witty rhyming poem, and email it out
+12. **Sogni LLM Person Poem Page** - Ask for a person's name, auto-select an available chat model, generate a witty rhyming poem, and show it on n8n's completion page
+13. **Sogni LLM Tool Calling Object Guessing Game** - Pick a secret object from a built-in catalog and let Sogni LLM try to guess it in 20 tool-calling moves
+14. **Sogni LLM Describe Uploaded Image** - Upload an image in a form, convert it to a multimodal vision request, and show the generated description on n8n's completion page
 
 ---
 
@@ -678,13 +680,18 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.5.1 (Current)
-- 📝 Fixed the sample LLM poem email workflow to read artist names correctly from n8n Form Trigger submissions
+### v1.5.2 (Current)
+- 🧠 Added `Messages JSON`, `Tools JSON`, and `Tool Choice JSON` for advanced Sogni LLM chat and tool-calling workflows
+- 🧪 Added object guessing game and uploaded-image description example workflows
+- 📝 Updated the sample poem and image examples to use n8n form completion pages instead of unsupported webhook responses
+
+### v1.5.1
+- 📝 Fixed the sample LLM poem workflow to read person names correctly from n8n Form Trigger submissions
 
 ### v1.5.0
 - 🤖 Added `LLM` resource support with `Generate` and `Get All` chat model operations
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.6.0`
-- 🧪 Added Sogni LLM email workflow example (`examples/12-sogni-llm-artist-poem-email.json`)
+- 🧪 Added a Sogni LLM poem workflow example (`examples/12-sogni-llm-artist-poem-email.json`)
 
 ### v1.4.2
 - 🧪 Added dedicated LTX-2 text-to-video example workflow (`examples/10-ltx2-text-to-video.json`)
