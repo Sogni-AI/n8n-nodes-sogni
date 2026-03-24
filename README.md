@@ -386,8 +386,8 @@ See the [examples](./examples/) directory for complete workflow JSON files:
 9. **WAN Animate-Replace with SAM2** - Subject-guided video replacement with reference image + source video
 10. **LTX-2 Text-to-Video** - Minimal prompt-only LTX t2v workflow
 11. **LTX 2.3 Dynamic Text-to-Video** - Auto-select an available `ltx23-*` model before generation
-12. **Sogni LLM Person Poem Page** - Ask for a person's name, auto-select an available chat model, generate a witty rhyming poem, and show it on n8n's completion page
-13. **Sogni LLM Describe Uploaded Image** - Upload an image in a form, convert it to a multimodal vision request, and show the generated description on n8n's completion page
+12. **Sogni LLM Person Poem Page** - Ask for a person's name in an n8n form, auto-select an available chat model, generate a witty rhyming poem, and show it on n8n's completion page
+13. **Sogni LLM Describe Uploaded Image** - Upload an image in an n8n form, send it to the documented Qwen3.5 VLM path, and show the generated description on n8n's completion page
 
 ---
 
@@ -679,7 +679,13 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.5.3 (Current)
+### v1.5.5 (Current)
+- 📚 Refreshed README and example docs for the current bundled LLM workflows
+- 🖼️ Hardened the uploaded-image vision example around n8n Form Trigger binary handling and the documented `qwen3.5-35b-a3b-gguf-q4km` VLM path
+- 🧪 Added a bundled sample upload image (`examples/duck.jpg`) for quick vision workflow testing
+- ⏱️ Kept the longer chat-model lookup timeouts for more reliable LLM workflow startup
+
+### v1.5.3
 - ⏱️ Extended Sogni chat-model lookup timeouts to reduce `Connection timeout` failures in LLM workflows
 - 🧠 Preserved incoming item JSON in `LLM -> Generate` results so looped/stateful workflows can carry execution state forward
 - 🧪 Simplified the bundled LLM examples to keep the person-poem and uploaded-image workflows aligned with the current example set

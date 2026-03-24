@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.5.3",
+  "version": "1.5.5",
   "description": "n8n community node for Sogni AI image, video, and LLM generation",
   "keywords": [
     "n8n-community-node-package",

@@ -210,8 +210,11 @@ Drag an image into an n8n form and have Sogni LLM describe it on n8n's built-in 
 
 **Features:**
 - Form trigger with file upload field
-- Converts uploaded binary image data to a multimodal `image_url` request
-- Uses Sogni LLM to describe the uploaded image
+- Reads the uploaded binary directly from the active form item
+- Validates supported image MIME types and recommended upload size before inference
+- Uses the documented `qwen3.5-35b-a3b-gguf-q4km` vision model path
+- Converts the uploaded image into a multimodal `image_url` request
+- Includes `duck.jpg` in this folder as a quick test image
 - Returns the description in the browser after submission
 
 **Use Case**: Vision demos, image captioning flows, lightweight upload-and-describe experiences
