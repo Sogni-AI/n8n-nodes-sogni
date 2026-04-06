@@ -634,7 +634,12 @@ See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sog
 
 ## Version History
 
-### v1.5.5 (Current)
+### v1.5.7 (Current)
+- 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.6.1`
+- 🔄 Pulled in wrapper-side upgrades from `@sogni-ai/sogni-client@4.1.1`
+- ✅ Revalidated the n8n node against the latest wrapper release
+
+### v1.5.5
 - 🤖 Added support for **Sogni Intelligence** with Sogni LLM models like **Qwen3.5**, including `Generate` and `Get All` chat model operations
 - 🧠 Added advanced chat inputs:
   - `Messages JSON`
