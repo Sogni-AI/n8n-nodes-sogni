@@ -4,7 +4,7 @@
 
 Generate AI images, videos, and LLM responses using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation, **video generation capabilities**, **Qwen Image Edit** for multi-reference image editing, and **Sogni LLM chat generation** for text workflows.
 
-This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-client-wrapper`](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
+This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client) (formerly `@sogni-ai/sogni-client-wrapper`), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
 <img src="https://raw.githubusercontent.com/Sogni-Ai/n8n-nodes-sogni/main/img/sogni-n8n-example-workflow.png" alt="Example n8n workflow using the Sogni node" width="1152">
 
@@ -608,10 +608,10 @@ Enable ControlNet based on conditions:
 
 ### Wrapper Library
 
-This node uses the `@sogni-ai/sogni-client-wrapper` library. For standalone Node.js usage:
+This node uses the `@sogni-ai/sogni-intelligence-client` library. For standalone Node.js usage:
 
 ```typescript
-import { SogniClientWrapper } from '@sogni-ai/sogni-client-wrapper';
+import { SogniClientWrapper } from '@sogni-ai/sogni-intelligence-client';
 
 const client = new SogniClientWrapper({
   username: 'your-username',
@@ -628,7 +628,7 @@ const result = await client.createProject({
 });
 ```
 
-See [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper) for full API documentation.
+See [@sogni-ai/sogni-intelligence-client](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client) for full API documentation.
 
 ---
 
@@ -747,7 +747,7 @@ MIT License - See LICENSE file for details
 
 Built with:
 - [@sogni-ai/sogni-client](https://www.npmjs.com/package/@sogni-ai/sogni-client) - Official Sogni SDK
-- [@sogni-ai/sogni-client-wrapper](https://www.npmjs.com/package/@sogni-ai/sogni-client-wrapper) - Enhanced wrapper library
+- [@sogni-ai/sogni-intelligence-client](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client) - Enhanced wrapper library
 - [n8n](https://n8n.io/) - Workflow automation platform
 
 ---

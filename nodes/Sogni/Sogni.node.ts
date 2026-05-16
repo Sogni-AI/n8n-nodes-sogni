@@ -14,7 +14,7 @@ import {
   SogniClientWrapper,
   ControlNetName,
   VideoControlNetName,
-} from '@sogni-ai/sogni-client-wrapper';
+} from '@sogni-ai/sogni-intelligence-client';
 import {
   isVideoModelCandidate,
   normalizeRequestedVideoFrames,
