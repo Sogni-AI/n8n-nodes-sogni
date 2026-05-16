@@ -70,7 +70,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client-wrapper": "^1.6.1"
+    "@sogni-ai/sogni-client-wrapper": "^2.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
