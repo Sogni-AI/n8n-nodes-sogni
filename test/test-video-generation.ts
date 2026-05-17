@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Simple video generation test for sogni-client-wrapper
+ * Simple video generation test for sogni-intelligence-client
  * Tests the wrapper's video generation capability with a fast 5-second video
  */
 
-import { SogniClientWrapper } from '@sogni-ai/sogni-client-wrapper';
+import { SogniClientWrapper } from '@sogni-ai/sogni-intelligence-client';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';

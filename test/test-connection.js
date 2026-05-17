@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { SogniClientWrapper } = require('@sogni-ai/sogni-client-wrapper');
+const { SogniClientWrapper } = require('@sogni-ai/sogni-intelligence-client');
 require('dotenv').config();
 
 async function testConnection() {

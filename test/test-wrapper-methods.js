@@ -3,7 +3,7 @@
  * Test to verify the wrapper has the correct methods
  */
 
-const { SogniClientWrapper } = require('@sogni-ai/sogni-client-wrapper');
+const { SogniClientWrapper } = require('@sogni-ai/sogni-intelligence-client');
 
 console.log('🔍 Testing SogniClientWrapper methods\n');
 

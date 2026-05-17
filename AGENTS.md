@@ -35,7 +35,7 @@ npm run prepublishOnly  # Validates build and lint before publish
 ### Core Structure
 - **Main Node**: `nodes/Sogni/Sogni.node.ts` - Implements all Sogni API operations (image generation, model listing, account balance)
 - **Credentials**: `credentials/SogniApi.credentials.ts` - Defines authentication (username, password, optional appId)
-- **Client Integration**: Uses local `sogni-client-wrapper` package (../sogni-client-wrapper) for WebSocket-based API communication
+- **Client Integration**: Uses the `@sogni-ai/sogni-intelligence-client` package (formerly `sogni-client-wrapper`) for WebSocket-based API communication
 - **Output**: Compiled to `dist/` directory with TypeScript transpilation
 
 ### Key Patterns
@@ -78,7 +78,7 @@ Tests in `test/node-validation.ts` validate:
 
 ## Local Development Setup
 1. Install dependencies: `npm install`
-2. Link local sogni-client-wrapper if needed
+2. Link local sogni-intelligence-client if needed
 3. Run `npm run dev` for watch mode
 4. Test in n8n: Copy built files from `dist/` to `~/.n8n/custom/n8n-nodes-sogni/`
 
