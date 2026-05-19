@@ -70,7 +70,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-intelligence-client": "^3.0.0-alpha.4"
+    "@sogni-ai/sogni-intelligence-client": "^2.2.4"
   },
   "engines": {
     "node": ">=18.0.0"
