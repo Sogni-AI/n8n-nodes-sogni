@@ -65,15 +65,15 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/parser": "^8.59.4",
     "dotenv": "^17.2.3",
     "eslint": "^8.0.0",
-    "n8n-workflow": "^1.0.0",
+    "n8n-workflow": "~2.20.3",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@sogni-ai/sogni-intelligence-client": "^2.2.8"
+    "@sogni-ai/sogni-intelligence-client": "^2.3.0"
   },
   "engines": {
     "node": ">=18.0.0"

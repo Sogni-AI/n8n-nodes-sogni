@@ -4,7 +4,7 @@
  * Run: node test-video-minimal.js
  */
 
-const { SogniClientWrapper } = require('@sogni-ai/sogni-client-wrapper');
+const { SogniClientWrapper } = require('@sogni-ai/sogni-intelligence-client');
 require('dotenv').config();
 
 async function minimalVideoTest() {
@@ -20,6 +20,7 @@ async function minimalVideoTest() {
     username: process.env.SOGNI_USERNAME,
     password: process.env.SOGNI_PASSWORD,
     appId: `minimal-video-${Date.now()}`,
+    appSource: 'n8n-nodes-sogni-test',
     autoConnect: true,
     debug: true  // Enable debug logging
   });

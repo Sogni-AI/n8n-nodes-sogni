@@ -254,15 +254,15 @@ Kick off a hosted multi-step Sogni Creative Workflow from a saved template, then
 ### 16. Sogni LLM: Hosted Creative Tools Agent *(new in 1.7.0)*
 **File**: `16-llm-sogni-hosted-tools-agent.json`
 
-Give a Sogni LLM model access to Sogni's 24-tool hosted creative manifest with a single toggle — no Tools JSON required.
+Give a Sogni LLM model access to Sogni's hosted creative tool manifest with a single toggle — no Tools JSON required.
 
 **Features:**
 - `Enable Sogni Hosted Tools` toggle on `LLM → Generate`
-- 24 hosted tools (generate_image, generate_video, generate_music, edit_image, animate_photo, …) auto-injected
+- Hosted tools such as `generate_image`, `generate_video`, `generate_music`, `edit_image`, and `animate_photo` are injected from the SDK manifest
 - Optional Tools JSON overrides hosted entries by name
 - Surfaces `toolCalls` so downstream nodes can dispatch to the actual creative ops
 
-**Use Case**: Agent loops, "tell the LLM what you want and let it plan the renders," creative copilots
+**Use Case**: Agent loops, creative planning flows, and workflows that route model tool calls to Sogni media operations
 
 ---
 
@@ -454,7 +454,7 @@ When a workflow completes, you'll receive:
 
 - [Sogni AI Documentation](https://sdk-docs.sogni.ai/)
 - [n8n Documentation](https://docs.n8n.io/)
-- [Sogni Client Wrapper README](../../sogni-client-wrapper/README.md)
+- [Sogni Intelligence Client](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client)
 - [Integration Guide](../../INTEGRATION_GUIDE.md)
 
 ---

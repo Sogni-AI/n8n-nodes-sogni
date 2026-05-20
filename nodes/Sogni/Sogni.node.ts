@@ -47,6 +47,24 @@ function debugLogAppId(message: string): void {
 
 const CHAT_MODEL_LOAD_OPTIONS_TIMEOUT_MS = 30000;
 const CHAT_MODEL_EXECUTION_TIMEOUT_MS = 45000;
+const SOGNI_N8N_APP_SOURCE = 'n8n-nodes-sogni';
+
+type HostedToolManifestEntry = {
+  function?: {
+    name?: unknown;
+  };
+};
+
+function getHostedTools(): HostedToolManifestEntry[] {
+  const manifest = SOGNI_HOSTED_TOOLS_MANIFEST as { tools?: unknown };
+  return Array.isArray(manifest.tools)
+    ? (manifest.tools as HostedToolManifestEntry[])
+    : [];
+}
+
+const SOGNI_HOSTED_TOOL_NAMES = getHostedTools()
+  .map((tool) => tool.function?.name)
+  .filter((name): name is string => typeof name === 'string' && name.length > 0);
 
 /**
  * Promise helper: ensures we don't hang forever during disconnect/cleanup.
@@ -178,6 +196,20 @@ function normalizeAppId(appId?: string): string | undefined {
  */
 function generateUniqueAppId(prefix: string): string {
   return `${prefix}-${randomUUID()}`;
+}
+
+function createSogniClient(
+  credentials: { username?: unknown; password?: unknown },
+  appId: string,
+): SogniClientWrapper {
+  return new SogniClientWrapper({
+    username: credentials.username as string,
+    password: credentials.password as string,
+    appId,
+    appSource: SOGNI_N8N_APP_SOURCE,
+    autoConnect: true,
+    debug: false,
+  });
 }
 
 /**
@@ -2032,7 +2064,7 @@ export class Sogni implements INodeType {
             name: 'appSource',
             type: 'string',
             default: 'n8n-nodes-sogni',
-            description: 'Telemetry tag identifying the caller',
+            description: 'Application source label used for server-side attribution',
           },
           {
             displayName: 'Idempotency Key',
@@ -2216,7 +2248,7 @@ export class Sogni implements INodeType {
             type: 'boolean',
             default: false,
             description:
-              'Whether to expose Sogni hosted creative tools (generate_image, generate_video, generate_music, edit_image, animate_photo, restore_photo, apply_style, change_angle, dance_montage, extend_video, orbit_video, overlay_video, refine_result, replace_video_segment, sound_to_video, stitch_video, video_to_video, add_subtitles) to the model — no Tools JSON required',
+              `Whether to expose the current Sogni hosted creative tool catalog (${SOGNI_HOSTED_TOOL_NAMES.join(', ') || 'manifest-backed tools'}) to the model. No Tools JSON required.`,
           },
           {
             displayName: 'Tools JSON',
@@ -2320,13 +2352,7 @@ export class Sogni implements INodeType {
         const appId = generateUniqueAppId('n8n-sogni-loadopts');
         debugLogAppId(`loadOptions:getModelOptions appId=${appId}`);
 
-        const client = new SogniClientWrapper({
-          username: credentials.username as string,
-          password: credentials.password as string,
-          appId,
-          autoConnect: true,
-          debug: false,
-        });
+        const client = createSogniClient(credentials, appId);
 
         try {
           // Read search text and coerce to string
@@ -2374,13 +2400,7 @@ export class Sogni implements INodeType {
         const appId = generateUniqueAppId('n8n-sogni-loadopts');
         debugLogAppId(`loadOptions:getVideoModelOptions appId=${appId}`);
 
-        const client = new SogniClientWrapper({
-          username: credentials.username as string,
-          password: credentials.password as string,
-          appId,
-          autoConnect: true,
-          debug: false,
-        });
+        const client = createSogniClient(credentials, appId);
 
         try {
           // Read search text and coerce to string
@@ -2438,13 +2458,7 @@ export class Sogni implements INodeType {
         const appId = generateUniqueAppId('n8n-sogni-loadopts');
         debugLogAppId(`loadOptions:getImageSizePresets appId=${appId}`);
 
-        const client = new SogniClientWrapper({
-          username: credentials.username as string,
-          password: credentials.password as string,
-          appId,
-          autoConnect: true,
-          debug: false,
-        });
+        const client = createSogniClient(credentials, appId);
 
         try {
           const modelId = ((this.getCurrentNodeParameter('modelId') as string) || '').trim();
@@ -2500,13 +2514,7 @@ export class Sogni implements INodeType {
         const appId = generateUniqueAppId('n8n-sogni-loadopts');
         debugLogAppId(`loadOptions:getAudioModelOptions appId=${appId}`);
 
-        const client = new SogniClientWrapper({
-          username: credentials.username as string,
-          password: credentials.password as string,
-          appId,
-          autoConnect: true,
-          debug: false,
-        });
+        const client = createSogniClient(credentials, appId);
 
         try {
           const search = (this.getCurrentNodeParameter('audioModelSearch') as string) || '';
@@ -2577,13 +2585,7 @@ export class Sogni implements INodeType {
         const appId = generateUniqueAppId('n8n-sogni-loadopts');
         debugLogAppId(`loadOptions:getImageEditModelOptions appId=${appId}`);
 
-        const client = new SogniClientWrapper({
-          username: credentials.username as string,
-          password: credentials.password as string,
-          appId,
-          autoConnect: true,
-          debug: false,
-        });
+        const client = createSogniClient(credentials, appId);
 
         try {
           // Read search text and coerce to string
@@ -2656,13 +2658,7 @@ export class Sogni implements INodeType {
         const appId = generateUniqueAppId('n8n-sogni-loadopts');
         debugLogAppId(`loadOptions:getChatModelOptions appId=${appId}`);
 
-        const client = new SogniClientWrapper({
-          username: credentials.username as string,
-          password: credentials.password as string,
-          appId,
-          autoConnect: true,
-          debug: false,
-        });
+        const client = createSogniClient(credentials, appId);
 
         try {
           const search = ((this.getCurrentNodeParameter('llmModelSearch') as string) || '')
@@ -2744,13 +2740,7 @@ export class Sogni implements INodeType {
     );
 
     // Create Sogni client (reuse single connection across all input items)
-    const client = new SogniClientWrapper({
-      username: credentials.username as string,
-      password: credentials.password as string,
-      appId,
-      autoConnect: true,
-      debug: false,
-    });
+    const client = createSogniClient(credentials, appId);
 
     try {
       for (let i = 0; i < items.length; i++) {
@@ -3532,16 +3522,17 @@ export class Sogni implements INodeType {
             // function name takes precedence.
             let tools: any[] | undefined;
             if (useSogniHostedTools) {
-              const hostedTools = Array.isArray((SOGNI_HOSTED_TOOLS_MANIFEST as any)?.tools)
-                ? ((SOGNI_HOSTED_TOOLS_MANIFEST as any).tools as any[])
-                : [];
+              const hostedTools = getHostedTools();
               const userNames = new Set(
                 (userTools ?? [])
                   .map((t: any) => t?.function?.name)
                   .filter((n: any): n is string => typeof n === 'string'),
               );
               tools = [
-                ...hostedTools.filter((t: any) => !userNames.has(t?.function?.name)),
+                ...hostedTools.filter((tool) => {
+                  const toolName = tool.function?.name;
+                  return typeof toolName !== 'string' || !userNames.has(toolName);
+                }),
                 ...(userTools ?? []),
               ];
             } else {

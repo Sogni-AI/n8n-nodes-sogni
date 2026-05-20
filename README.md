@@ -7,14 +7,12 @@ Generate AI images, videos, audio, LLM responses, and full hosted multi-step cre
 - **Image** — text-to-image with full ControlNet (15 types), Qwen Image Edit with multi-reference context images, and a dynamic server-validated size-preset dropdown.
 - **Video** — LTX-2.3, WAN 2.2, and Seedance families with cost estimation, ControlNet, image-to-video, sound-to-video, animate, and v2v workflows.
 - **Audio** — generate music and instrumental audio (ACE-Step) with optional lyrics, BPM/time signature/key, composer mode, and cost estimation. *(new in 1.7.0)*
-- **LLM** — Sogni Intelligence chat models with optional tool calling and vision input, a one-click toggle to expose Sogni's 24-tool hosted creative manifest to the model, and pre-flight cost estimates. *(new in 1.7.0)*
+- **LLM** — Sogni Intelligence chat models with optional tool calling and vision input, a one-click toggle to expose Sogni's hosted creative tool manifest to the model, and pre-flight cost estimates. *(new in 1.7.0)*
 - **Creative Workflow** — start, list, fetch events for, and cancel hosted multi-step Sogni workflows (storyboard → keyframes → video, etc.) with optional poll-until-terminal mode. *(new in 1.7.0)*
 
-This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client) (formerly `@sogni-ai/sogni-client-wrapper`), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
+This node uses your Sogni account credentials. [Sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project uses [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
 <img src="https://raw.githubusercontent.com/Sogni-Ai/n8n-nodes-sogni/main/img/sogni-n8n-example-workflow.png" alt="Example n8n workflow using the Sogni node" width="1152">
-
----
 
 ---
 
@@ -35,7 +33,7 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 - **Estimate Cost**: Estimate token/USD cost for an audio request.
 
 #### LLM Resource
-- **Generate**: Create text responses with Sogni chat models. Supports custom tool calling via *Tools JSON*, and a one-click *Enable Sogni Hosted Tools* toggle that injects Sogni's 24-tool hosted creative manifest (`generate_image`, `generate_video`, `generate_music`, `edit_image`, `animate_photo`, `apply_style`, etc.) so the model can drive the platform end-to-end. *(toggle new in 1.7.0)*
+- **Generate**: Create text responses with Sogni chat models. Supports custom tool calling via *Tools JSON*, and a one-click *Enable Sogni Hosted Tools* toggle that injects Sogni's hosted creative tool manifest (`generate_image`, `generate_video`, `generate_music`, `edit_image`, `animate_photo`, `apply_style`, etc.) so the model can call Sogni tools without hand-authored tool definitions. *(toggle new in 1.7.0)*
 - **Estimate Cost**: Pre-flight chat cost estimate for a model + messages + max_tokens combination. *(new in 1.7.0)*
 - **Get All**: List all available Sogni LLM/chat models.
 
@@ -637,6 +635,7 @@ import { SogniClientWrapper } from '@sogni-ai/sogni-intelligence-client';
 const client = new SogniClientWrapper({
   username: 'your-username',
   password: 'your-password',
+  appSource: 'n8n-nodes-sogni',
   autoConnect: true,
 });
 
@@ -655,7 +654,15 @@ See [@sogni-ai/sogni-intelligence-client](https://www.npmjs.com/package/@sogni-a
 
 ## Version History
 
-### v1.5.7 (Current)
+### v1.7.0 (Current)
+- Updated `@sogni-ai/sogni-intelligence-client` to `^2.3.0`, including
+  `@sogni-ai/sogni-client@^5.0.0-alpha.11`.
+- Added wrapper-level `appSource` attribution for all n8n Sogni connections.
+- Added Audio, Creative Workflow, LLM cost estimation, hosted tools, server-validated
+  image size presets, and Model Get Most Popular. See [CHANGELOG.md](./CHANGELOG.md)
+  for the full notes.
+
+### v1.5.7
 - 📦 Updated `@sogni-ai/sogni-client-wrapper` to `v1.6.1`
 - 🔄 Pulled in wrapper-side upgrades from `@sogni-ai/sogni-client@4.1.1`
 - ✅ Revalidated the n8n node against the latest wrapper release

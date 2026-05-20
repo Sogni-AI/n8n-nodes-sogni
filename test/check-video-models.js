@@ -4,7 +4,7 @@
  * Run: node check-video-models.js
  */
 
-const { SogniClientWrapper } = require('@sogni-ai/sogni-client-wrapper');
+const { SogniClientWrapper } = require('@sogni-ai/sogni-intelligence-client');
 require('dotenv').config();
 
 async function checkVideoModels() {
@@ -20,6 +20,7 @@ async function checkVideoModels() {
     username: process.env.SOGNI_USERNAME,
     password: process.env.SOGNI_PASSWORD,
     appId: `check-models-${Date.now()}`,
+    appSource: 'n8n-nodes-sogni-test',
     autoConnect: true
   });
 

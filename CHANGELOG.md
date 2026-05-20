@@ -6,7 +6,7 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 project does not strictly follow Semantic Versioning yet (we land features under minor
 bumps and fixes under patch).
 
-## [1.7.0] — 2026-05-19
+## [1.7.0] — 2026-05-20
 
 ### Added
 
@@ -44,10 +44,23 @@ bumps and fixes under patch).
   accepts on the chosen network. Takes precedence over the legacy preset field in
   *Additional Fields → Output*, which remains for backward compatibility.
 
+### Changed
+
+- Bumped `@sogni-ai/sogni-intelligence-client` to `^2.3.0`, which pulls in
+  `@sogni-ai/sogni-client@^5.0.0-alpha.11` and the latest protocol-backed hosted tool
+  manifest.
+- All n8n wrapper connections now pass `appSource: "n8n-nodes-sogni"` for server-side
+  attribution via the new intelligence-client 2.3.0 wrapper config field.
+- Hosted-tools UI copy now derives the tool-name list from `SOGNI_HOSTED_TOOLS_MANIFEST`
+  instead of carrying a hand-maintained partial list.
+- Updated development-only dependencies (`n8n-workflow`, `@typescript-eslint/parser`,
+  and `@typescript-eslint/eslint-plugin`) to remove fixable audit findings while
+  keeping `n8n-workflow` on the stable 2.20.x line.
+
 ### Internal
 
 - Validation test suite extended from 36 → 58 cases.
-- `dependencies`: still tracking `@sogni-ai/sogni-intelligence-client@^2.2.8`. New
+- `dependencies`: now tracking `@sogni-ai/sogni-intelligence-client@^2.3.0`. New
   imports also use the `@sogni-ai/sogni-intelligence-client/openai-tools` subpath
   export for the hosted-tools manifest.
 
