@@ -1,0 +1,72 @@
+{
+  "name": "Sogni LLM: Hosted Creative Tools Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sogni LLM with Hosted Creative Tools\n\nLet a Sogni LLM model drive Sogni's hosted creative tools (image, video, music, edit, restore, dance, etc.) — no Tools JSON required.\n\n### Setup\n1. Install `n8n-nodes-sogni` (1.7.0+).\n2. Add Sogni credentials.\n3. Pick an LLM model with tool-calling support.\n4. Run.\n\n### Why this is interesting\nFlipping *Enable Sogni Hosted Tools* on injects Sogni's 24-tool hosted manifest — 18 generation tools (generate_image, generate_video, generate_music, edit_image, animate_photo, restore_photo, apply_style, change_angle, dance_montage, extend_video, orbit_video, overlay_video, refine_result, replace_video_segment, sound_to_video, stitch_video, video_to_video, add_subtitles) plus 6 composition tools (enhance_prompt, compose_lyrics, compose_instrumental, compose_script, compose_workflow, compose_workflow_template). The model can then *call* those tools the way ChatGPT calls function tools. The node's response surfaces `toolCalls` so you can route to your own implementations downstream, OR pair this with the Creative Workflow resource to actually execute the plan.\n\n### Customization\n- **Tools JSON**: add your own tools alongside hosted ones; same-name entries override the hosted version.\n- **Tool Choice JSON**: force a specific tool with `{ \"type\":\"function\",\"function\":{\"name\":\"generate_image\"} }` or use `auto`/`required`/`none`.\n- **Estimate Cost**: switch Operation to *Estimate Cost* for a dry-run before paying tokens.",
+        "height": 580,
+        "width": 380,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-200, 60],
+      "id": "sticky-hosted-tools-info",
+      "name": "Hosted Tools Info"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "Click to manually trigger the workflow"
+    },
+    {
+      "parameters": {
+        "resource": "llm",
+        "operation": "generate",
+        "llmModelSearch": "qwen3",
+        "llmModelId": "qwen3.6-35b-a3b-gguf-iq4xs",
+        "llmPrompt": "Plan a one-image marketing render: a holographic cyberpunk dragon over a futuristic Tokyo at sunset, vertical 9:16 aspect, photorealistic. If you need to call a tool to make it, do so.",
+        "llmSystemPrompt": "You are a creative director who plans and (when appropriate) calls Sogni's hosted creative tools to produce media. Be concise.",
+        "llmAdditionalFields": {
+          "maxTokens": 1024,
+          "useSogniHostedTools": true,
+          "toolChoiceJson": "auto",
+          "tokenType": "spark"
+        }
+      },
+      "id": "sogni-llm-hosted-tools",
+      "name": "LLM with Hosted Tools",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "notes": "useSogniHostedTools = true injects all hosted creative tools."
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "LLM with Hosted Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

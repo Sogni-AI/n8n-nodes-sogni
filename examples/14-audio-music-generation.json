@@ -1,0 +1,84 @@
+{
+  "name": "Sogni Audio: ACE-Step Music Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sogni Audio — Generate Music with ACE-Step\n\nGenerate a 30s music clip from a text prompt + optional lyrics using Sogni's Audio resource (new in 1.7.0).\n\n### Setup\n1. Install `n8n-nodes-sogni` (1.7.0+).\n2. Add Sogni credentials.\n3. Pick an Audio model from the dropdown (filtered to audio-capable models, e.g. ACE-Step variants).\n4. Click **Test workflow** to generate.\n\n### Output\nThe Generate Audio node returns an `audioUrls` array AND downloads each track to a binary property (`audio`, `audio_1`, …) — by default — so downstream nodes can save the file directly. URLs expire after 24h, so keep download on.\n\n### Customization\n- **Prompt**: change `audioPositivePrompt` to steer genre/mood (e.g., `lofi piano with rain ambience`).\n- **Lyrics**: leave blank for instrumental.\n- **BPM / Time Signature / Key**: optional musical constraints inside *Music & Lyrics*.\n- **Network**: `fast` for interactive runs, `relaxed` for cheaper batch jobs.\n- **Estimate Cost**: switch the Operation to *Estimate Cost* to dry-run pricing before committing tokens.",
+        "height": 540,
+        "width": 360,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-180, 60],
+      "id": "sticky-audio-info",
+      "name": "Audio Info"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "Click to manually trigger the workflow"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "generate",
+        "audioModelSearch": "ace_step",
+        "audioModelId": "ace_step_1.5_turbo",
+        "audioPositivePrompt": "Upbeat synthwave with driving bass, 80s arcade vibes",
+        "audioNetwork": "fast",
+        "audioDuration": 30,
+        "audioAdditionalFields": {
+          "musicAndLyrics": {
+            "bpm": 128,
+            "timesignature": "4",
+            "composerMode": true
+          },
+          "generationSettings": {
+            "numberOfMedia": 1
+          },
+          "output": {
+            "downloadAudios": true,
+            "outputFormat": "mp3"
+          },
+          "advanced": {
+            "tokenType": "spark"
+          }
+        }
+      },
+      "id": "sogni-audio-generate",
+      "name": "Generate Audio",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "notes": "Defaults to ace_step_1.5_turbo. Use ace_step_1.5_sft for stronger lyric handling."
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

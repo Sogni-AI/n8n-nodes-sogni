@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.6.0",
-  "description": "n8n community node for Sogni AI image, video, and LLM generation",
+  "version": "1.7.0",
+  "description": "n8n community node for Sogni AI image, video, audio, LLM, and hosted creative-workflow generation",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
@@ -9,13 +9,16 @@
     "ai",
     "image-generation",
     "video-generation",
+    "audio-generation",
+    "music-generation",
     "stable-diffusion",
     "flux",
     "controlnet",
     "workflow",
     "automation",
     "llm",
-    "chat"
+    "chat",
+    "creative-workflows"
   ],
   "license": "MIT",
   "homepage": "https://github.com/Sogni-AI/n8n-nodes-sogni#readme",

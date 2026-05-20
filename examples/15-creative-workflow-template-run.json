@@ -1,0 +1,72 @@
+{
+  "name": "Sogni Creative Workflow: Run Saved Template + Wait",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Creative Workflow — Run a Saved Template\n\nKick off a hosted Sogni Creative Workflow from a saved template, then **poll until terminal**. Returns the final record with artifacts.\n\n### Setup\n1. Install `n8n-nodes-sogni` (1.7.0+).\n2. Add Sogni credentials.\n3. Replace `wf_tpl_REPLACE_ME` with a real template ID from your Sogni account.\n4. Edit *Inputs JSON* to match your template's declared `inputs[]`.\n5. **Test workflow**.\n\n### Output\n- `workflowId` — runtime workflow ID (use it to fetch events/cancel from another node).\n- `status` — final terminal status (`completed`, `partial_failure`, `failed`, `cancelled`, `waiting_for_user`).\n- `record` — full workflow record including `artifacts[]`.\n- `waited` / `timedOut` — flags so you can route on timeouts.\n\n### Alternative modes\nSwitch the Start node's *Start Mode* to **Inline Plan** to ship a one-shot `steps[]` workflow instead of using a saved template. Or turn *Wait Until Terminal* off and use the Get / Get Events / Cancel operations to poll/cancel from separate branches.",
+        "height": 540,
+        "width": 380,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-200, 60],
+      "id": "sticky-cw-info",
+      "name": "Creative Workflow Info"
+    },
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "Click to manually trigger the workflow"
+    },
+    {
+      "parameters": {
+        "resource": "creativeWorkflow",
+        "operation": "start",
+        "cwStartMode": "template",
+        "cwTemplateId": "wf_tpl_REPLACE_ME",
+        "cwInputsJson": "{\n  \"brief\": \"A neon city at dusk, cinematic shot\",\n  \"aspect_ratio\": \"16:9\"\n}",
+        "cwWait": true,
+        "cwStartAdditionalFields": {
+          "tokenType": "spark",
+          "appSource": "n8n-nodes-sogni",
+          "pollIntervalMs": 3000,
+          "pollTimeoutMs": 900000
+        }
+      },
+      "id": "sogni-cw-start",
+      "name": "Start Creative Workflow",
+      "type": "n8n-nodes-sogni.sogni",
+      "typeVersion": 1,
+      "position": [480, 300],
+      "notes": "Polls until terminal; returns the final record."
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Start Creative Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

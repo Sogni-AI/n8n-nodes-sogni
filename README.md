@@ -1,8 +1,14 @@
 # n8n-nodes-sogni
 
-**Enhanced n8n Community Node for Sogni AI Image, Video & LLM Generation**
+**Enhanced n8n Community Node for Sogni AI Image, Video, Audio, LLM & Creative-Workflow Generation**
 
-Generate AI images, videos, and LLM responses using Sogni AI Supernet directly in your n8n workflows with **full ControlNet support** for guided image generation, **video generation capabilities**, **Qwen Image Edit** for multi-reference image editing, and **Sogni LLM chat generation** for text workflows.
+Generate AI images, videos, audio, LLM responses, and full hosted multi-step creative workflows on the Sogni AI Supernet — directly from your n8n workflows. Highlights:
+
+- **Image** — text-to-image with full ControlNet (15 types), Qwen Image Edit with multi-reference context images, and a dynamic server-validated size-preset dropdown.
+- **Video** — LTX-2.3, WAN 2.2, and Seedance families with cost estimation, ControlNet, image-to-video, sound-to-video, animate, and v2v workflows.
+- **Audio** — generate music and instrumental audio (ACE-Step) with optional lyrics, BPM/time signature/key, composer mode, and cost estimation. *(new in 1.7.0)*
+- **LLM** — Sogni Intelligence chat models with optional tool calling and vision input, a one-click toggle to expose Sogni's 24-tool hosted creative manifest to the model, and pre-flight cost estimates. *(new in 1.7.0)*
+- **Creative Workflow** — start, list, fetch events for, and cancel hosted multi-step Sogni workflows (storyboard → keyframes → video, etc.) with optional poll-until-terminal mode. *(new in 1.7.0)*
 
 This node pulls from your personal Sogni account—[sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project utilizes the [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client) (formerly `@sogni-ai/sogni-client-wrapper`), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
@@ -17,23 +23,38 @@ This node pulls from your personal Sogni account—[sign up for free](https://ap
 ### Resources & Operations
 
 #### Image Resource
-- **Generate**: Create AI images with optional ControlNet guidance
-- **Edit**: Edit images using Qwen Image Edit models with context images
+- **Generate**: Create AI images with optional ControlNet guidance and a server-validated *Size Preset* dropdown that adapts to the chosen model + network.
+- **Edit**: Edit images using Qwen Image Edit models with context images.
 
 #### Video Resource
-- **Generate**: Create AI videos with customizable parameters
-- **Estimate Cost**: Estimate token/USD cost before generation
+- **Generate**: Create AI videos with customizable parameters.
+- **Estimate Cost**: Estimate token/USD cost before generation.
+
+#### Audio Resource *(new in 1.7.0)*
+- **Generate**: Create music or instrumental audio (ACE-Step) with optional lyrics, BPM, time signature, key/scale, composer mode, and creativity controls.
+- **Estimate Cost**: Estimate token/USD cost for an audio request.
 
 #### LLM Resource
-- **Generate**: Create text responses with Sogni chat models
-- **Get All**: List all available Sogni LLM/chat models
+- **Generate**: Create text responses with Sogni chat models. Supports custom tool calling via *Tools JSON*, and a one-click *Enable Sogni Hosted Tools* toggle that injects Sogni's 24-tool hosted creative manifest (`generate_image`, `generate_video`, `generate_music`, `edit_image`, `animate_photo`, `apply_style`, etc.) so the model can drive the platform end-to-end. *(toggle new in 1.7.0)*
+- **Estimate Cost**: Pre-flight chat cost estimate for a model + messages + max_tokens combination. *(new in 1.7.0)*
+- **Get All**: List all available Sogni LLM/chat models.
+
+#### Creative Workflow Resource *(new in 1.7.0)*
+- **Start**: Run a hosted multi-step workflow from a saved template (`Template ID` + `Inputs JSON`) or an inline plan (`Inline Workflow JSON` with `steps[]`). Optional *Wait Until Terminal* polling.
+- **Get**: Fetch a workflow record by ID.
+- **List**: List recent workflows (limit/offset).
+- **Get Events**: Stream the event history for a workflow.
+- **Cancel**: Cancel an in-flight workflow.
 
 #### Model Resource
-- **Get All**: List all available models
-- **Get**: Get specific model details
+- **Get All**: List all available models.
+- **Get**: Get specific model details.
+- **Get Most Popular**: Get the model with the most active workers in a single call. *(new in 1.7.0)*
 
 #### Account Resource
-- **Get Balance**: Check SOGNI and Spark token balance
+- **Get Balance**: Check SOGNI and Spark token balance.
+
+See [CHANGELOG.md](./CHANGELOG.md) for the full 1.7.0 release notes.
 
 ---
 

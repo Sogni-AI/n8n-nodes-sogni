@@ -221,6 +221,51 @@ Drag an image into an n8n form and have Sogni LLM describe it on n8n's built-in 
 
 ---
 
+### 14. Sogni Audio: ACE-Step Music Generation *(new in 1.7.0)*
+**File**: `14-audio-music-generation.json`
+
+Generate a 30-second music clip from a text prompt (optionally with lyrics) using the new Audio resource.
+
+**Features:**
+- New `Audio → Generate` operation
+- ACE-Step model picker (auto-filtered to audio-capable models)
+- BPM / time signature / composer-mode controls
+- Auto-downloads each track as a binary property (`audio`, `audio_1`, …)
+
+**Use Case**: Soundtrack generation, jingles, podcast intros, batch music production
+
+---
+
+### 15. Sogni Creative Workflow: Run Saved Template + Wait *(new in 1.7.0)*
+**File**: `15-creative-workflow-template-run.json`
+
+Kick off a hosted multi-step Sogni Creative Workflow from a saved template, then poll until terminal status.
+
+**Features:**
+- New `Creative Workflow → Start` operation
+- Template mode with structured `Inputs JSON`
+- `Wait Until Terminal` toggle with configurable poll interval / timeout
+- Output exposes `waited` / `timedOut` so you can branch on long runs
+
+**Use Case**: Storyboard → keyframes → video pipelines, agent-driven creative jobs, automated marketing assets
+
+---
+
+### 16. Sogni LLM: Hosted Creative Tools Agent *(new in 1.7.0)*
+**File**: `16-llm-sogni-hosted-tools-agent.json`
+
+Give a Sogni LLM model access to Sogni's 24-tool hosted creative manifest with a single toggle — no Tools JSON required.
+
+**Features:**
+- `Enable Sogni Hosted Tools` toggle on `LLM → Generate`
+- 24 hosted tools (generate_image, generate_video, generate_music, edit_image, animate_photo, …) auto-injected
+- Optional Tools JSON overrides hosted entries by name
+- Surfaces `toolCalls` so downstream nodes can dispatch to the actual creative ops
+
+**Use Case**: Agent loops, "tell the LLM what you want and let it plan the renders," creative copilots
+
+---
+
 ## 🚀 How to Use These Examples
 
 ### Method 1: Import via n8n UI

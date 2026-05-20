@@ -15,6 +15,7 @@ import {
   ControlNetName,
   VideoControlNetName,
 } from '@sogni-ai/sogni-intelligence-client';
+import { SOGNI_HOSTED_TOOLS_MANIFEST } from '@sogni-ai/sogni-intelligence-client/openai-tools';
 import {
   isVideoModelCandidate,
   normalizeRequestedVideoFrames,
@@ -267,7 +268,9 @@ export class Sogni implements INodeType {
         options: [
           { name: 'Image', value: 'image' },
           { name: 'Video', value: 'video' },
+          { name: 'Audio', value: 'audio' },
           { name: 'LLM', value: 'llm' },
+          { name: 'Creative Workflow', value: 'creativeWorkflow' },
           { name: 'Model', value: 'model' },
           { name: 'Account', value: 'account' },
         ],
@@ -315,6 +318,12 @@ export class Sogni implements INodeType {
             value: 'generate',
             description: 'Generate a text response with a Sogni LLM model',
             action: 'Generate LLM response',
+          },
+          {
+            name: 'Estimate Cost',
+            value: 'estimateCost',
+            description: 'Estimate token and USD cost for a chat completion request',
+            action: 'Estimate LLM cost',
           },
           {
             name: 'Get All',
@@ -374,6 +383,12 @@ export class Sogni implements INodeType {
             description: 'Get a specific model',
             action: 'Get a model',
           },
+          {
+            name: 'Get Most Popular',
+            value: 'getPopular',
+            description: 'Get the model with the most active workers (fastest pickup)',
+            action: 'Get most popular model',
+          },
         ],
         default: 'getAll',
       },
@@ -394,6 +409,76 @@ export class Sogni implements INodeType {
           },
         ],
         default: 'getBalance',
+      },
+
+      // Audio Operations
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        displayOptions: {
+          show: { resource: ['audio'] },
+        },
+        options: [
+          {
+            name: 'Generate',
+            value: 'generate',
+            description: 'Generate AI music or audio (e.g., ACE-Step)',
+            action: 'Generate Sogni audio',
+          },
+          {
+            name: 'Estimate Cost',
+            value: 'estimateCost',
+            description: 'Estimate token and USD cost for an audio request',
+            action: 'Estimate audio cost',
+          },
+        ],
+        default: 'generate',
+      },
+
+      // Creative Workflow Operations
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        noDataExpression: true,
+        displayOptions: {
+          show: { resource: ['creativeWorkflow'] },
+        },
+        options: [
+          {
+            name: 'Start',
+            value: 'start',
+            description: 'Start a hosted creative workflow from a saved template or an inline plan',
+            action: 'Start a creative workflow',
+          },
+          {
+            name: 'Get',
+            value: 'get',
+            description: 'Get a workflow record by ID',
+            action: 'Get a creative workflow',
+          },
+          {
+            name: 'List',
+            value: 'list',
+            description: 'List creative workflows',
+            action: 'List creative workflows',
+          },
+          {
+            name: 'Get Events',
+            value: 'events',
+            description: 'Get the event history for a workflow',
+            action: 'Get creative workflow events',
+          },
+          {
+            name: 'Cancel',
+            value: 'cancel',
+            description: 'Cancel an in-flight workflow',
+            action: 'Cancel a creative workflow',
+          },
+        ],
+        default: 'start',
       },
 
       // ===== Image Generation Parameters =====
@@ -463,6 +548,21 @@ export class Sogni implements INodeType {
         default: 'fast',
         description:
           'Network type to use. If timeout is left empty, this will imply 60s (fast) or 600s (relaxed).',
+      },
+      {
+        displayName: 'Size Preset (Server-Validated)',
+        name: 'imageSizePreset',
+        type: 'options',
+        default: '',
+        displayOptions: {
+          show: { resource: ['image'], operation: ['generate'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getImageSizePresets',
+          loadOptionsDependsOn: ['modelId', 'network'],
+        },
+        description:
+          'Pick a server-validated size preset for the chosen Model + Network. Takes precedence over the (legacy) Size Preset in Additional Fields. Choose "Custom" to use Width/Height in Additional Fields instead.',
       },
 
       // ===== Image Edit Parameters =====
@@ -1465,6 +1565,566 @@ export class Sogni implements INodeType {
         ],
       },
 
+      // ===== Audio Generation Parameters =====
+
+      // Model picker with search (loadOptions) - Audio
+      {
+        displayName: 'Model Search',
+        name: 'audioModelSearch',
+        type: 'string',
+        placeholder: 'e.g., ace-step, music',
+        default: '',
+        description:
+          'Type to filter audio models by name/tag. The dropdown below refreshes when you edit this field.',
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['generate', 'estimateCost'] },
+        },
+      },
+      {
+        displayName: 'Model',
+        name: 'audioModelId',
+        type: 'options',
+        required: true,
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['generate', 'estimateCost'] },
+        },
+        typeOptions: {
+          loadOptionsMethod: 'getAudioModelOptions',
+          loadOptionsDependsOn: ['audioModelSearch'],
+        },
+        default: '',
+        description:
+          'Choose an audio model from the list (recommended), or paste a known model ID into this field.',
+      },
+      {
+        displayName: 'Positive Prompt',
+        name: 'audioPositivePrompt',
+        type: 'string',
+        required: true,
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['generate'] },
+        },
+        default: '',
+        typeOptions: { rows: 4 },
+        description:
+          'Text description of the music or audio you want to generate (genre, mood, instruments, etc.)',
+        placeholder: 'upbeat synthwave with driving bass, 80s vibes',
+      },
+      {
+        displayName: 'Network',
+        name: 'audioNetwork',
+        type: 'options',
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['generate'] },
+        },
+        options: [
+          {
+            name: 'Fast',
+            value: 'fast',
+            description: 'Faster generation, uses SOGNI/Spark tokens',
+          },
+          {
+            name: 'Relaxed',
+            value: 'relaxed',
+            description: 'Slower but cheaper, uses SOGNI/Spark tokens',
+          },
+        ],
+        default: 'fast',
+        description:
+          'Network type to use. If timeout is left empty, this will imply 120s (fast) or 1200s (relaxed) for audio.',
+      },
+      {
+        displayName: 'Duration (Seconds)',
+        name: 'audioDuration',
+        type: 'number',
+        default: 30,
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['generate'] },
+        },
+        description: 'Length of the generated audio in seconds (10–600).',
+        typeOptions: { minValue: 10, maxValue: 600 },
+      },
+
+      // ===== Audio Cost Estimate Parameters =====
+      {
+        displayName: 'Duration (Seconds)',
+        name: 'audioEstimateDuration',
+        type: 'number',
+        default: 30,
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['estimateCost'] },
+        },
+        description: 'Estimated audio duration in seconds (10–600)',
+        typeOptions: { minValue: 10, maxValue: 600 },
+      },
+      {
+        displayName: 'Steps',
+        name: 'audioEstimateSteps',
+        type: 'number',
+        default: 30,
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['estimateCost'] },
+        },
+        description: 'Inference steps used for estimation',
+        typeOptions: { minValue: 1, maxValue: 200 },
+      },
+      {
+        displayName: 'Number of Tracks',
+        name: 'audioEstimateNumberOfMedia',
+        type: 'number',
+        default: 1,
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['estimateCost'] },
+        },
+        description: 'How many audio tracks to estimate',
+        typeOptions: { minValue: 1, maxValue: 10 },
+      },
+      {
+        displayName: 'Token Type',
+        name: 'audioEstimateTokenType',
+        type: 'options',
+        default: 'spark',
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['estimateCost'] },
+        },
+        options: [
+          { name: 'Spark', value: 'spark' },
+          { name: 'SOGNI', value: 'sogni' },
+        ],
+        description: 'Token type for the estimate',
+      },
+
+      // ===== Audio Additional Fields =====
+      {
+        displayName: 'Additional Fields',
+        name: 'audioAdditionalFields',
+        type: 'fixedCollection',
+        placeholder: 'Add Field Group',
+        default: {},
+        displayOptions: {
+          show: { resource: ['audio'], operation: ['generate'] },
+        },
+        options: [
+          {
+            displayName: 'Music & Lyrics',
+            name: 'musicAndLyrics',
+            values: [
+              {
+                displayName: 'Lyrics',
+                name: 'lyrics',
+                type: 'string',
+                default: '',
+                typeOptions: { rows: 4 },
+                description:
+                  'Song lyrics. Leave empty for instrumental generation.',
+                placeholder: '[Verse 1]\nWalking through the neon glow…',
+              },
+              {
+                displayName: 'Language',
+                name: 'language',
+                type: 'string',
+                default: '',
+                description:
+                  'Lyrics language code (e.g., en, es, ja). Leave empty for server default.',
+                placeholder: 'en',
+              },
+              {
+                displayName: 'BPM',
+                name: 'bpm',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Beats per minute (30–300). Leave empty for server default (120).',
+                typeOptions: { minValue: 30, maxValue: 300 },
+              },
+              {
+                displayName: 'Time Signature',
+                name: 'timesignature',
+                type: 'options',
+                default: '',
+                options: [
+                  { name: 'Default', value: '' },
+                  { name: '2/4', value: '2' },
+                  { name: '3/4', value: '3' },
+                  { name: '4/4', value: '4' },
+                  { name: '6/8', value: '6' },
+                ],
+                description: 'Time signature for the composition',
+              },
+              {
+                displayName: 'Key / Scale',
+                name: 'keyscale',
+                type: 'string',
+                default: '',
+                description: 'Key/scale (e.g., "C major", "A minor"). Empty uses server default.',
+                placeholder: 'C major',
+              },
+              {
+                displayName: 'Composer Mode',
+                name: 'composerMode',
+                type: 'boolean',
+                default: true,
+                description:
+                  'Whether to enable AI composer mode for higher quality. Disable for faster runs or when using reference audio.',
+              },
+              {
+                displayName: 'Prompt Strength',
+                name: 'promptStrength',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'How closely the AI composer follows your prompt (0–10). Empty uses server default (2.0).',
+                typeOptions: { minValue: 0, maxValue: 10, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Creativity',
+                name: 'creativity',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'Composition variation / temperature (0–2). Higher = more creative. Empty uses server default (0.85).',
+                typeOptions: { minValue: 0, maxValue: 2, numberPrecision: 2 },
+              },
+              {
+                displayName: 'Shift',
+                name: 'shift',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'ModelSamplingAuraFlow shift (1–6). Empty uses server default (3 for turbo).',
+                typeOptions: { minValue: 1, maxValue: 6, numberPrecision: 1 },
+              },
+              {
+                displayName: 'Sampler',
+                name: 'sampler',
+                type: 'string',
+                default: '',
+                description: 'Sampler name. Available options depend on the model.',
+              },
+              {
+                displayName: 'Scheduler',
+                name: 'scheduler',
+                type: 'string',
+                default: '',
+                description: 'Scheduler name. Available options depend on the model.',
+              },
+            ],
+          },
+          {
+            displayName: 'Generation Settings',
+            name: 'generationSettings',
+            values: [
+              {
+                displayName: 'Negative Prompt',
+                name: 'negativePrompt',
+                type: 'string',
+                default: '',
+                typeOptions: { rows: 2 },
+                description: "Text description of what you don't want to hear",
+                placeholder: 'distorted, off-key, low quality',
+              },
+              {
+                displayName: 'Style Prompt',
+                name: 'stylePrompt',
+                type: 'string',
+                default: '',
+                description: 'Style description for the audio',
+                placeholder: 'synthwave, lo-fi, orchestral',
+              },
+              {
+                displayName: 'Number of Tracks',
+                name: 'numberOfMedia',
+                type: 'number',
+                default: 1,
+                description: 'Number of audio tracks to generate (1-10)',
+                typeOptions: { minValue: 1, maxValue: 10 },
+              },
+              {
+                displayName: 'Steps',
+                name: 'steps',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'Number of inference steps. Leave empty to use the model default.',
+                typeOptions: { minValue: 1, maxValue: 200 },
+              },
+              {
+                displayName: 'Guidance',
+                name: 'guidance',
+                type: 'number',
+                default: undefined as unknown as number,
+                description:
+                  'How closely to follow the prompt. Leave empty to use the model default.',
+                typeOptions: { minValue: 0, maxValue: 30, numberPrecision: 1 },
+              },
+              {
+                displayName: 'Seed',
+                name: 'seed',
+                type: 'number',
+                default: undefined as unknown as number,
+                description: 'Random seed for reproducibility. Leave empty for random.',
+                placeholder: '12345',
+              },
+            ],
+          },
+          {
+            displayName: 'Output',
+            name: 'output',
+            values: [
+              {
+                displayName: 'Download Audio',
+                name: 'downloadAudios',
+                type: 'boolean',
+                default: true,
+                description:
+                  'Whether to download audio as binary data (recommended to avoid 24h URL expiry)',
+              },
+              {
+                displayName: 'Output Format',
+                name: 'outputFormat',
+                type: 'options',
+                options: [
+                  { name: 'MP3', value: 'mp3' },
+                  { name: 'FLAC', value: 'flac' },
+                  { name: 'WAV', value: 'wav' },
+                ],
+                default: 'mp3',
+                description: 'Audio output format',
+              },
+            ],
+          },
+          {
+            displayName: 'Advanced',
+            name: 'advanced',
+            values: [
+              {
+                displayName: 'Token Type',
+                name: 'tokenType',
+                type: 'options',
+                options: [
+                  { name: 'Spark', value: 'spark', description: 'Use Spark tokens (cheaper)' },
+                  { name: 'SOGNI', value: 'sogni', description: 'Use SOGNI tokens' },
+                ],
+                default: 'spark',
+                description: 'Which token type to use for generation',
+              },
+              {
+                displayName: 'Timeout (ms)',
+                name: 'timeout',
+                type: 'number',
+                default: undefined,
+                description: 'Max wait time in milliseconds. Leave empty for network-based defaults.',
+                typeOptions: { minValue: 1000, maxValue: 3600000 },
+              },
+            ],
+          },
+        ],
+      },
+
+      // ===== Creative Workflow Parameters =====
+      {
+        displayName: 'Start Mode',
+        name: 'cwStartMode',
+        type: 'options',
+        default: 'template',
+        displayOptions: {
+          show: { resource: ['creativeWorkflow'], operation: ['start'] },
+        },
+        options: [
+          {
+            name: 'Saved Template',
+            value: 'template',
+            description: 'Run a workflow template by ID, with input values',
+          },
+          {
+            name: 'Inline Plan',
+            value: 'inline',
+            description: 'Run a one-shot plan composed client-side (steps[] array)',
+          },
+        ],
+        description: 'How to define the workflow to run',
+      },
+      {
+        displayName: 'Template ID',
+        name: 'cwTemplateId',
+        type: 'string',
+        required: true,
+        default: '',
+        displayOptions: {
+          show: {
+            resource: ['creativeWorkflow'],
+            operation: ['start'],
+            cwStartMode: ['template'],
+          },
+        },
+        description: 'ID of the saved workflow template to run',
+        placeholder: 'wf_tpl_…',
+      },
+      {
+        displayName: 'Inputs JSON',
+        name: 'cwInputsJson',
+        type: 'string',
+        default: '',
+        typeOptions: { rows: 6 },
+        displayOptions: {
+          show: {
+            resource: ['creativeWorkflow'],
+            operation: ['start'],
+            cwStartMode: ['template'],
+          },
+        },
+        description:
+          'Optional inputs to pass to the template, as a JSON object resolved against the template\'s declared inputs[].',
+        placeholder: '{"brief":"A neon city at dusk","aspect_ratio":"16:9"}',
+      },
+      {
+        displayName: 'Inline Workflow JSON',
+        name: 'cwInputJson',
+        type: 'string',
+        required: true,
+        default: '',
+        typeOptions: { rows: 10 },
+        displayOptions: {
+          show: {
+            resource: ['creativeWorkflow'],
+            operation: ['start'],
+            cwStartMode: ['inline'],
+          },
+        },
+        description:
+          'Full inline workflow as JSON: { title?: string, steps: [{ id?, toolName, arguments, dependsOn? }, …] }.',
+        placeholder:
+          '{"title":"hero shot","steps":[{"toolName":"generate_image","arguments":{"prompt":"a neon city at dusk"}}]}',
+      },
+      {
+        displayName: 'Wait Until Terminal',
+        name: 'cwWait',
+        type: 'boolean',
+        default: false,
+        displayOptions: {
+          show: { resource: ['creativeWorkflow'], operation: ['start'] },
+        },
+        description:
+          'Whether to poll the workflow until it reaches a terminal status (completed, partial_failure, failed, cancelled, waiting_for_user). Off = return the queued record immediately.',
+      },
+      {
+        displayName: 'Start Additional Fields',
+        name: 'cwStartAdditionalFields',
+        type: 'collection',
+        placeholder: 'Add Field',
+        default: {},
+        displayOptions: {
+          show: { resource: ['creativeWorkflow'], operation: ['start'] },
+        },
+        options: [
+          {
+            displayName: 'Token Type',
+            name: 'tokenType',
+            type: 'options',
+            options: [
+              { name: 'Spark', value: 'spark', description: 'Use Spark tokens (cheaper)' },
+              { name: 'SOGNI', value: 'sogni', description: 'Use SOGNI tokens' },
+            ],
+            default: 'spark',
+            description: 'Token type charged for the run',
+          },
+          {
+            displayName: 'App Source',
+            name: 'appSource',
+            type: 'string',
+            default: 'n8n-nodes-sogni',
+            description: 'Telemetry tag identifying the caller',
+          },
+          {
+            displayName: 'Idempotency Key',
+            name: 'idempotencyKey',
+            type: 'string',
+            default: '',
+            description:
+              'Optional idempotency key for retrying the same request safely. Leave empty to omit.',
+          },
+          {
+            displayName: 'Max Estimated Capacity Units',
+            name: 'maxEstimatedCapacityUnits',
+            type: 'number',
+            default: undefined,
+            description:
+              'Cap on the estimated capacity units charged. Leave empty to use server default.',
+            typeOptions: { minValue: 1, maxValue: 1000000 },
+          },
+          {
+            displayName: 'Confirm Cost',
+            name: 'confirmCost',
+            type: 'boolean',
+            default: false,
+            description: 'Whether to require explicit cost confirmation server-side before running',
+          },
+          {
+            displayName: 'Media References JSON',
+            name: 'mediaReferencesJson',
+            type: 'string',
+            default: '',
+            typeOptions: { rows: 4 },
+            description:
+              'Optional array of uploaded HTTP(S) media references the workflow can use (durable workflows require URLs, not data URIs).',
+            placeholder: '[{"id":"img1","url":"https://example.com/hero.png"}]',
+          },
+          {
+            displayName: 'Poll Interval (ms)',
+            name: 'pollIntervalMs',
+            type: 'number',
+            default: 2000,
+            description: 'How often to poll when "Wait Until Terminal" is on',
+            typeOptions: { minValue: 250, maxValue: 60000 },
+          },
+          {
+            displayName: 'Poll Timeout (ms)',
+            name: 'pollTimeoutMs',
+            type: 'number',
+            default: 600000,
+            description:
+              'Maximum total time to wait for terminal status when "Wait Until Terminal" is on',
+            typeOptions: { minValue: 1000, maxValue: 3600000 },
+          },
+        ],
+      },
+      {
+        displayName: 'Workflow ID',
+        name: 'cwWorkflowId',
+        type: 'string',
+        required: true,
+        default: '',
+        displayOptions: {
+          show: {
+            resource: ['creativeWorkflow'],
+            operation: ['get', 'events', 'cancel'],
+          },
+        },
+        description: 'The runtime workflow ID (returned from a Start operation)',
+        placeholder: 'wf_run_…',
+      },
+      {
+        displayName: 'Limit',
+        name: 'cwListLimit',
+        type: 'number',
+        default: 20,
+        displayOptions: {
+          show: { resource: ['creativeWorkflow'], operation: ['list'] },
+        },
+        description: 'How many workflows to return',
+        typeOptions: { minValue: 1, maxValue: 200 },
+      },
+      {
+        displayName: 'Offset',
+        name: 'cwListOffset',
+        type: 'number',
+        default: 0,
+        displayOptions: {
+          show: { resource: ['creativeWorkflow'], operation: ['list'] },
+        },
+        description: 'How many workflows to skip',
+        typeOptions: { minValue: 0, maxValue: 100000 },
+      },
+
       // ===== LLM Parameters =====
       {
         displayName: 'Model Search',
@@ -1473,7 +2133,7 @@ export class Sogni implements INodeType {
         placeholder: 'e.g., qwen, vision, reasoning',
         default: '',
         displayOptions: {
-          show: { resource: ['llm'], operation: ['generate'] },
+          show: { resource: ['llm'], operation: ['generate', 'estimateCost'] },
         },
         description:
           'Type to filter chat models by ID. The dropdown below refreshes when you edit this field.',
@@ -1484,7 +2144,7 @@ export class Sogni implements INodeType {
         type: 'options',
         required: true,
         displayOptions: {
-          show: { resource: ['llm'], operation: ['generate'] },
+          show: { resource: ['llm'], operation: ['generate', 'estimateCost'] },
         },
         typeOptions: {
           loadOptionsMethod: 'getChatModelOptions',
@@ -1500,7 +2160,7 @@ export class Sogni implements INodeType {
         required: true,
         default: '',
         displayOptions: {
-          show: { resource: ['llm'], operation: ['generate'] },
+          show: { resource: ['llm'], operation: ['generate', 'estimateCost'] },
         },
         description: 'The user prompt to send to the selected Sogni LLM model',
       },
@@ -1510,7 +2170,7 @@ export class Sogni implements INodeType {
         type: 'string',
         default: '',
         displayOptions: {
-          show: { resource: ['llm'], operation: ['generate'] },
+          show: { resource: ['llm'], operation: ['generate', 'estimateCost'] },
         },
         description: 'Optional system instruction to guide tone, style, or behavior',
       },
@@ -1521,7 +2181,7 @@ export class Sogni implements INodeType {
         placeholder: 'Add Field',
         default: {},
         displayOptions: {
-          show: { resource: ['llm'], operation: ['generate'] },
+          show: { resource: ['llm'], operation: ['generate', 'estimateCost'] },
         },
         options: [
           {
@@ -1551,12 +2211,21 @@ export class Sogni implements INodeType {
             description: 'Whether to enable reasoning for models that support it',
           },
           {
+            displayName: 'Enable Sogni Hosted Tools',
+            name: 'useSogniHostedTools',
+            type: 'boolean',
+            default: false,
+            description:
+              'Whether to expose Sogni hosted creative tools (generate_image, generate_video, generate_music, edit_image, animate_photo, restore_photo, apply_style, change_angle, dance_montage, extend_video, orbit_video, overlay_video, refine_result, replace_video_segment, sound_to_video, stitch_video, video_to_video, add_subtitles) to the model — no Tools JSON required',
+          },
+          {
             displayName: 'Tools JSON',
             name: 'toolsJson',
             type: 'string',
             default: '',
             typeOptions: { rows: 6 },
-            description: 'Optional OpenAI-style tools array as JSON for custom tool calling',
+            description:
+              'Optional OpenAI-style tools array as JSON for custom tool calling. Merged with Sogni hosted tools when that toggle is on; entries here override hosted tools with the same name.',
             placeholder:
               '[{"type":"function","function":{"name":"get_time","description":"Get current time","parameters":{"type":"object","properties":{"timezone":{"type":"string"}},"required":["timezone"]}}}]',
           },
@@ -1757,6 +2426,143 @@ export class Sogni implements INodeType {
         } finally {
           await safeDisconnect(client, {
             label: 'loadOptions:getVideoModelOptions',
+            appId,
+            timeoutMs: 2000,
+          });
+        }
+      },
+
+      async getImageSizePresets(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('sogniApi');
+
+        const appId = generateUniqueAppId('n8n-sogni-loadopts');
+        debugLogAppId(`loadOptions:getImageSizePresets appId=${appId}`);
+
+        const client = new SogniClientWrapper({
+          username: credentials.username as string,
+          password: credentials.password as string,
+          appId,
+          autoConnect: true,
+          debug: false,
+        });
+
+        try {
+          const modelId = ((this.getCurrentNodeParameter('modelId') as string) || '').trim();
+          const network = ((this.getCurrentNodeParameter('network') as string) || 'fast').trim() as
+            | 'fast'
+            | 'relaxed';
+
+          if (!modelId) {
+            return [
+              {
+                name: 'Pick a Model first to load its server-validated presets',
+                value: '',
+                description: 'Set the Model dropdown above before choosing a size preset',
+              },
+            ];
+          }
+
+          const presets = await client.getSizePresets(network, modelId);
+
+          const options: INodePropertyOptions[] = [
+            {
+              name: 'Custom (Use Width/Height Below)',
+              value: '',
+              description:
+                'Don\'t use a preset — fall back to the optional Width/Height fields in Additional Fields',
+            },
+            ...(presets as any[]).map((preset: any) => {
+              const label = preset.label || preset.id || `${preset.width}x${preset.height}`;
+              const ratio = preset.ratio ? ` (${preset.ratio})` : '';
+              return {
+                name: `${label}${ratio} • ${preset.width}x${preset.height}`,
+                value: preset.id,
+                description: preset.aspect || undefined,
+              };
+            }),
+          ];
+
+          return options;
+        } finally {
+          await safeDisconnect(client, {
+            label: 'loadOptions:getImageSizePresets',
+            appId,
+            timeoutMs: 2000,
+          });
+        }
+      },
+
+      async getAudioModelOptions(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials('sogniApi');
+
+        // IMPORTANT: Use a dedicated unique appId for loadOptions so the editor UI cannot
+        // interfere with any running workflow execution.
+        const appId = generateUniqueAppId('n8n-sogni-loadopts');
+        debugLogAppId(`loadOptions:getAudioModelOptions appId=${appId}`);
+
+        const client = new SogniClientWrapper({
+          username: credentials.username as string,
+          password: credentials.password as string,
+          appId,
+          autoConnect: true,
+          debug: false,
+        });
+
+        try {
+          const search = (this.getCurrentNodeParameter('audioModelSearch') as string) || '';
+
+          const models = await client.getAvailableModels({
+            sortByWorkers: true,
+            minWorkers: 0,
+            search: search || undefined,
+            filter: search || undefined,
+            limit: 100,
+          } as any);
+
+          // Filter for audio models. Prefer the SDK-provided `media` field; fall back to keyword
+          // heuristics for resilience against older client versions that don't expose it.
+          // Real ACE-Step model IDs use underscores (e.g. ace_step_1.5_turbo).
+          const audioModels = (models as any[]).filter((model: any) => {
+            if (model?.media === 'audio') return true;
+            const id = String(model?.id ?? '').toLowerCase();
+            const name = String(model?.name ?? '').toLowerCase();
+            const description = String(model?.description ?? '').toLowerCase();
+            const haystack = `${id} ${name} ${description}`;
+            return (
+              id.startsWith('ace_step') ||
+              id.startsWith('ace-step') ||
+              haystack.includes('audio') ||
+              haystack.includes('music')
+            );
+          });
+
+          const options: INodePropertyOptions[] = audioModels.map((model: any) => {
+            const workers = model.workerCount ?? model.workers ?? 0;
+            const healthy =
+              model.health === 'healthy' ||
+              model.status === 'healthy' ||
+              (typeof model.healthy === 'boolean' ? model.healthy : workers > 0);
+            const recommended = healthy && workers >= 5;
+            const badge = workers ? ` • ${workers} workers` : '';
+            return {
+              name: `${model.name || model.id}${badge}${recommended ? ' (recommended)' : ''}`,
+              value: model.id,
+              description: model.description || undefined,
+            };
+          });
+
+          if (options.length === 0) {
+            options.push({
+              name: 'No audio models available - check back later',
+              value: '',
+              description: 'Audio models are being added to the platform',
+            });
+          }
+
+          return options;
+        } finally {
+          await safeDisconnect(client, {
+            label: 'loadOptions:getAudioModelOptions',
             appId,
             timeoutMs: 2000,
           });
@@ -1982,7 +2788,10 @@ export class Sogni implements INodeType {
 
             const downloadImages = out.downloadImages ?? legacy.downloadImages ?? true;
             const outputFormat = out.outputFormat ?? legacy.outputFormat ?? 'png';
-            const sizePreset = out.sizePreset ?? legacy.sizePreset;
+            // Top-level dynamic size preset (loadOptions) wins over the legacy fixed-collection one.
+            const topLevelSizePreset = ((this.getNodeParameter('imageSizePreset', i, '') as string) || '')
+              .trim();
+            const sizePreset = topLevelSizePreset || out.sizePreset || legacy.sizePreset;
             const width = out.width ?? legacy.width;
             const height = out.height ?? legacy.height;
 
@@ -2689,6 +3498,7 @@ export class Sogni implements INodeType {
             const maxTokens = additional.maxTokens as number | undefined;
             const messagesJson = String(additional.messagesJson ?? '').trim();
             const think = additional.think ?? false;
+            const useSogniHostedTools = additional.useSogniHostedTools === true;
             const toolsJson = String(additional.toolsJson ?? '').trim();
             const toolChoiceJson = String(additional.toolChoiceJson ?? '').trim();
             const tokenType = (additional.tokenType ?? 'spark') as 'spark' | 'sogni';
@@ -2710,9 +3520,32 @@ export class Sogni implements INodeType {
               throw new Error('Messages JSON must be a non-empty array when provided');
             }
 
-            const tools = toolsJson ? parseJsonParameter<any[]>(toolsJson, 'Tools JSON') : undefined;
-            if (toolsJson && !Array.isArray(tools)) {
+            const userTools = toolsJson
+              ? parseJsonParameter<any[]>(toolsJson, 'Tools JSON')
+              : undefined;
+            if (toolsJson && !Array.isArray(userTools)) {
               throw new Error('Tools JSON must be an array when provided');
+            }
+
+            // Build the final tools array. When the hosted-tools toggle is on we
+            // start from the Sogni manifest; any user-provided entry with the same
+            // function name takes precedence.
+            let tools: any[] | undefined;
+            if (useSogniHostedTools) {
+              const hostedTools = Array.isArray((SOGNI_HOSTED_TOOLS_MANIFEST as any)?.tools)
+                ? ((SOGNI_HOSTED_TOOLS_MANIFEST as any).tools as any[])
+                : [];
+              const userNames = new Set(
+                (userTools ?? [])
+                  .map((t: any) => t?.function?.name)
+                  .filter((n: any): n is string => typeof n === 'string'),
+              );
+              tools = [
+                ...hostedTools.filter((t: any) => !userNames.has(t?.function?.name)),
+                ...(userTools ?? []),
+              ];
+            } else {
+              tools = userTools;
             }
 
             let toolChoice: any = undefined;
@@ -2746,12 +3579,60 @@ export class Sogni implements INodeType {
                 messages,
                 tools,
                 toolChoice,
+                useSogniHostedTools,
                 content: (result as any).content || '',
                 finishReason: (result as any).finishReason,
                 jobId: (result as any).jobID,
                 toolCalls: (result as any).tool_calls,
                 usage: (result as any).usage,
                 response: result,
+              },
+            });
+          } else if (resource === 'llm' && operation === 'estimateCost') {
+            const model = this.getNodeParameter('llmModelId', i) as string;
+            const prompt = this.getNodeParameter('llmPrompt', i) as string;
+            const systemPrompt = (this.getNodeParameter('llmSystemPrompt', i, '') as string).trim();
+            const additional = (this.getNodeParameter('llmAdditionalFields', i, {}) as any) || {};
+            const maxTokens = additional.maxTokens as number | undefined;
+            const messagesJson = String(additional.messagesJson ?? '').trim();
+            const tokenType = (additional.tokenType ?? 'spark') as 'spark' | 'sogni';
+
+            await client.waitForChatModels(CHAT_MODEL_EXECUTION_TIMEOUT_MS);
+
+            const messages = messagesJson
+              ? parseJsonParameter<any[]>(messagesJson, 'Messages JSON')
+              : (() => {
+                  const baseMessages: Array<{ role: 'system' | 'user'; content: string }> = [];
+                  if (systemPrompt) {
+                    baseMessages.push({ role: 'system', content: systemPrompt });
+                  }
+                  baseMessages.push({ role: 'user', content: prompt });
+                  return baseMessages;
+                })();
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+              throw new Error('Messages JSON must be a non-empty array when provided');
+            }
+
+            const estimate = await client.estimateChatCost({
+              model,
+              messages: messages as any,
+              max_tokens:
+                typeof maxTokens === 'number' && !Number.isNaN(maxTokens) ? maxTokens : undefined,
+              tokenType,
+            });
+
+            returnData.push({
+              json: {
+                modelId: model,
+                parameters: {
+                  prompt,
+                  systemPrompt: systemPrompt || undefined,
+                  maxTokens,
+                  tokenType,
+                  messages,
+                },
+                estimate,
               },
             });
           } else if (resource === 'llm' && operation === 'getAll') {
@@ -2797,6 +3678,19 @@ export class Sogni implements INodeType {
                 recommendedSettings: model.recommendedSettings,
               },
             });
+          } else if (resource === 'model' && operation === 'getPopular') {
+            // Get Most Popular Model — convenience for "pick whatever has the
+            // most workers right now" without two round trips.
+            const model = await client.getMostPopularModel();
+
+            returnData.push({
+              json: {
+                id: (model as any).id,
+                name: (model as any).name,
+                workerCount: (model as any).workerCount,
+                recommendedSettings: (model as any).recommendedSettings,
+              },
+            });
           } else if (resource === 'account' && operation === 'getBalance') {
             // Get Balance
             const balance = await client.getBalance();
@@ -2805,6 +3699,378 @@ export class Sogni implements INodeType {
               json: {
                 sogni: balance.sogni,
                 spark: balance.spark,
+              },
+            });
+          } else if (resource === 'audio' && operation === 'generate') {
+            const audioModelId = this.getNodeParameter('audioModelId', i) as string;
+            const audioPositivePrompt = this.getNodeParameter('audioPositivePrompt', i) as string;
+            const audioNetwork = this.getNodeParameter('audioNetwork', i) as 'fast' | 'relaxed';
+            const audioDuration = this.getNodeParameter('audioDuration', i) as number;
+
+            const audioAdditional = (this.getNodeParameter('audioAdditionalFields', i, {}) as any) || {};
+            const musicAndLyrics = (audioAdditional.musicAndLyrics ?? {}) as any;
+            const genSettings = (audioAdditional.generationSettings ?? {}) as any;
+            const output = (audioAdditional.output ?? {}) as any;
+            const advanced = (audioAdditional.advanced ?? {}) as any;
+
+            const numberOfMedia = (genSettings.numberOfMedia as number | undefined) ?? 1;
+            const negativePrompt = (genSettings.negativePrompt as string | undefined)?.trim() || undefined;
+            const stylePrompt = (genSettings.stylePrompt as string | undefined)?.trim() || undefined;
+            const steps = genSettings.steps as number | undefined;
+            const guidance = genSettings.guidance as number | undefined;
+            const seed = genSettings.seed as number | undefined;
+
+            const lyrics = (musicAndLyrics.lyrics as string | undefined)?.trim() || undefined;
+            const language = (musicAndLyrics.language as string | undefined)?.trim() || undefined;
+            const bpm = musicAndLyrics.bpm as number | undefined;
+            const timesignature =
+              (musicAndLyrics.timesignature as string | undefined)?.trim() || undefined;
+            const keyscale = (musicAndLyrics.keyscale as string | undefined)?.trim() || undefined;
+            const composerMode = musicAndLyrics.composerMode as boolean | undefined;
+            const promptStrength = musicAndLyrics.promptStrength as number | undefined;
+            const creativity = musicAndLyrics.creativity as number | undefined;
+            const shift = musicAndLyrics.shift as number | undefined;
+            const sampler = (musicAndLyrics.sampler as string | undefined)?.trim() || undefined;
+            const scheduler = (musicAndLyrics.scheduler as string | undefined)?.trim() || undefined;
+
+            const downloadAudios = output.downloadAudios !== false;
+            const outputFormat = (output.outputFormat as 'mp3' | 'flac' | 'wav' | undefined) || 'mp3';
+
+            const tokenType = (advanced.tokenType as 'spark' | 'sogni' | undefined) || 'spark';
+            const explicitTimeout = advanced.timeout as number | undefined;
+            const resolvedTimeoutMs =
+              typeof explicitTimeout === 'number' && !Number.isNaN(explicitTimeout)
+                ? explicitTimeout
+                : audioNetwork === 'relaxed'
+                  ? 1200000
+                  : 120000;
+
+            const audioConfig: any = {
+              modelId: audioModelId,
+              positivePrompt: audioPositivePrompt,
+              numberOfMedia,
+              duration: audioDuration,
+              network: audioNetwork,
+              tokenType,
+              waitForCompletion: true,
+              timeout: resolvedTimeoutMs,
+              outputFormat,
+            };
+
+            if (negativePrompt !== undefined) audioConfig.negativePrompt = negativePrompt;
+            if (stylePrompt !== undefined) audioConfig.stylePrompt = stylePrompt;
+            if (typeof steps === 'number' && !Number.isNaN(steps)) audioConfig.steps = steps;
+            if (typeof guidance === 'number' && !Number.isNaN(guidance)) audioConfig.guidance = guidance;
+            if (typeof seed === 'number' && !Number.isNaN(seed)) audioConfig.seed = seed;
+
+            if (lyrics !== undefined) audioConfig.lyrics = lyrics;
+            if (language !== undefined) audioConfig.language = language;
+            if (typeof bpm === 'number' && !Number.isNaN(bpm)) audioConfig.bpm = bpm;
+            if (timesignature !== undefined) audioConfig.timesignature = timesignature;
+            if (keyscale !== undefined) audioConfig.keyscale = keyscale;
+            if (typeof composerMode === 'boolean') audioConfig.composerMode = composerMode;
+            if (typeof promptStrength === 'number' && !Number.isNaN(promptStrength)) {
+              audioConfig.promptStrength = promptStrength;
+            }
+            if (typeof creativity === 'number' && !Number.isNaN(creativity)) {
+              audioConfig.creativity = creativity;
+            }
+            if (typeof shift === 'number' && !Number.isNaN(shift)) audioConfig.shift = shift;
+            if (sampler !== undefined) audioConfig.sampler = sampler;
+            if (scheduler !== undefined) audioConfig.scheduler = scheduler;
+
+            const ar = await client.createAudioProject(audioConfig);
+            const audioProjectId =
+              (ar as any).projectId ?? (ar as any).project?.id ?? (ar as any).project?.projectId;
+
+            const audioOutputData: INodeExecutionData = {
+              json: {
+                projectId: audioProjectId,
+                audioUrls: ar.audioUrls,
+                completed: ar.completed,
+                jobsCount: ar.jobs?.length || 0,
+                error: ar.error,
+                meta: {
+                  modelId: audioModelId,
+                  network: audioNetwork,
+                  tokenType,
+                  parameters: {
+                    positivePrompt: audioPositivePrompt,
+                    negativePrompt,
+                    stylePrompt,
+                    duration: audioDuration,
+                    numberOfMedia,
+                    steps,
+                    guidance,
+                    seed,
+                    lyrics,
+                    language,
+                    bpm,
+                    timesignature,
+                    keyscale,
+                    composerMode,
+                    promptStrength,
+                    creativity,
+                    shift,
+                    sampler,
+                    scheduler,
+                    outputFormat,
+                    timeoutMs: resolvedTimeoutMs,
+                  },
+                },
+              },
+              binary: {},
+            };
+
+            if (downloadAudios && ar.audioUrls && ar.audioUrls.length > 0) {
+              for (let aIndex = 0; aIndex < ar.audioUrls.length; aIndex++) {
+                const audioUrl = ar.audioUrls[aIndex];
+
+                try {
+                  const resp = await fetch(audioUrl);
+                  if (!resp.ok) {
+                    throw new Error(`Failed to download audio: ${resp.status} ${resp.statusText}`);
+                  }
+                  const arrayBuffer = await resp.arrayBuffer();
+                  const bodyBuffer = Buffer.from(arrayBuffer);
+
+                  const headers: Record<string, string> = {};
+                  resp.headers.forEach((v, k) => {
+                    headers[k.toLowerCase()] = v;
+                  });
+
+                  const headerCt = headers['content-type'];
+                  const fallbackMime =
+                    outputFormat === 'wav'
+                      ? 'audio/wav'
+                      : outputFormat === 'flac'
+                        ? 'audio/flac'
+                        : 'audio/mpeg';
+                  const mimeType = headerCt || fallbackMime;
+                  const headerCd = headers['content-disposition'];
+                  const cdFilename = parseContentDispositionFilename(headerCd);
+
+                  const defaultNameBase = (audioProjectId ?? 'sogni_audio') + `_${aIndex}`;
+                  const filename = cdFilename || `${defaultNameBase}.${outputFormat}`;
+
+                  const binaryPropertyName = aIndex === 0 ? 'audio' : `audio_${aIndex}`;
+
+                  audioOutputData.binary![binaryPropertyName] = await this.helpers.prepareBinaryData(
+                    bodyBuffer,
+                    filename,
+                    mimeType,
+                  );
+                } catch (downloadError) {
+                  // If download fails, still include the URL
+                  // eslint-disable-next-line no-console
+                  console.error(`Failed to download audio ${aIndex}:`, downloadError);
+                }
+              }
+            }
+
+            returnData.push(audioOutputData);
+          } else if (resource === 'audio' && operation === 'estimateCost') {
+            const audioModelId = this.getNodeParameter('audioModelId', i) as string;
+            const duration = this.getNodeParameter('audioEstimateDuration', i) as number;
+            const steps = this.getNodeParameter('audioEstimateSteps', i) as number;
+            const numberOfMedia = this.getNodeParameter('audioEstimateNumberOfMedia', i) as number;
+            const tokenType = this.getNodeParameter('audioEstimateTokenType', i) as 'spark' | 'sogni';
+
+            const estimateParams = {
+              modelId: audioModelId,
+              duration,
+              steps,
+              numberOfMedia,
+              tokenType,
+            };
+
+            const estimate = await client.estimateAudioCost(estimateParams);
+
+            returnData.push({
+              json: {
+                modelId: audioModelId,
+                parameters: estimateParams,
+                estimate,
+              },
+            });
+          } else if (resource === 'creativeWorkflow' && operation === 'start') {
+            const startMode = this.getNodeParameter('cwStartMode', i) as 'template' | 'inline';
+            const wait = this.getNodeParameter('cwWait', i, false) as boolean;
+            const additional =
+              (this.getNodeParameter('cwStartAdditionalFields', i, {}) as any) || {};
+
+            const tokenType = (additional.tokenType as 'spark' | 'sogni' | undefined) || 'spark';
+            const appSource = (additional.appSource as string | undefined) || 'n8n-nodes-sogni';
+            const idempotencyKey = (additional.idempotencyKey as string | undefined)?.trim() || undefined;
+            const maxEstimatedCapacityUnits = additional.maxEstimatedCapacityUnits as number | undefined;
+            const confirmCost =
+              typeof additional.confirmCost === 'boolean' ? additional.confirmCost : undefined;
+            const mediaReferencesJson =
+              String(additional.mediaReferencesJson ?? '').trim() || undefined;
+            const pollIntervalMs = (additional.pollIntervalMs as number | undefined) ?? 2000;
+            const pollTimeoutMs = (additional.pollTimeoutMs as number | undefined) ?? 600000;
+
+            const startParams: any = {
+              tokenType,
+              appSource,
+            };
+            if (idempotencyKey) startParams.idempotencyKey = idempotencyKey;
+            if (typeof maxEstimatedCapacityUnits === 'number' && !Number.isNaN(maxEstimatedCapacityUnits)) {
+              startParams.maxEstimatedCapacityUnits = maxEstimatedCapacityUnits;
+            }
+            if (typeof confirmCost === 'boolean') startParams.confirmCost = confirmCost;
+            if (mediaReferencesJson) {
+              const parsedRefs = parseJsonParameter<any[]>(mediaReferencesJson, 'Media References JSON');
+              if (!Array.isArray(parsedRefs)) {
+                throw new Error('Media References JSON must be an array when provided');
+              }
+              startParams.mediaReferences = parsedRefs;
+            }
+
+            if (startMode === 'template') {
+              const templateId = (this.getNodeParameter('cwTemplateId', i) as string).trim();
+              if (!templateId) {
+                throw new Error('Template ID is required when Start Mode is "Saved Template"');
+              }
+              startParams.workflowId = templateId;
+              const inputsJson = String(this.getNodeParameter('cwInputsJson', i, '') as string).trim();
+              if (inputsJson) {
+                const parsedInputs = parseJsonParameter<Record<string, unknown>>(
+                  inputsJson,
+                  'Inputs JSON',
+                );
+                if (!parsedInputs || typeof parsedInputs !== 'object' || Array.isArray(parsedInputs)) {
+                  throw new Error('Inputs JSON must be an object when provided');
+                }
+                startParams.inputs = parsedInputs;
+              }
+            } else {
+              const inputJson = String(this.getNodeParameter('cwInputJson', i) as string).trim();
+              if (!inputJson) {
+                throw new Error('Inline Workflow JSON is required when Start Mode is "Inline Plan"');
+              }
+              const parsedInput = parseJsonParameter<any>(inputJson, 'Inline Workflow JSON');
+              if (!parsedInput || typeof parsedInput !== 'object' || Array.isArray(parsedInput)) {
+                throw new Error('Inline Workflow JSON must be an object containing a steps array');
+              }
+              if (!Array.isArray(parsedInput.steps) || parsedInput.steps.length === 0) {
+                throw new Error('Inline Workflow JSON must contain a non-empty steps[] array');
+              }
+              startParams.input = parsedInput;
+            }
+
+            const record = await client.startCreativeWorkflow(startParams);
+            const workflowId = (record as any)?.workflowId as string | undefined;
+
+            // Terminal statuses we will not poll past. waiting_for_user is included
+            // because there's no Resume operation on this node and continuing to
+            // poll would block until the timeout.
+            const TERMINAL_STATUSES = new Set([
+              'completed',
+              'partial_failure',
+              'failed',
+              'cancelled',
+              'canceled',
+              'waiting_for_user',
+            ]);
+
+            let finalRecord: any = record;
+            let polled = false;
+            let timedOut = false;
+
+            if (wait && workflowId) {
+              polled = true;
+              const startedAt = Date.now();
+              const interval = Math.max(250, pollIntervalMs);
+              const timeout = Math.max(1000, pollTimeoutMs);
+
+              let done = false;
+              while (!done) {
+                const current: any = await client.getCreativeWorkflow(workflowId);
+                finalRecord = current;
+                const status = String(current?.status ?? '');
+                if (status && TERMINAL_STATUSES.has(status)) {
+                  done = true;
+                  break;
+                }
+                if (Date.now() - startedAt > timeout) {
+                  timedOut = true;
+                  done = true;
+                  break;
+                }
+                await new Promise((resolve) => setTimeout(resolve, interval));
+              }
+            }
+
+            returnData.push({
+              json: {
+                workflowId,
+                status: (finalRecord as any)?.status,
+                waited: polled,
+                timedOut,
+                record: finalRecord,
+              },
+            });
+          } else if (resource === 'creativeWorkflow' && operation === 'get') {
+            const workflowId = (this.getNodeParameter('cwWorkflowId', i) as string).trim();
+            if (!workflowId) {
+              throw new Error('Workflow ID is required');
+            }
+            const record = await client.getCreativeWorkflow(workflowId);
+            returnData.push({
+              json: {
+                workflowId: (record as any)?.workflowId ?? workflowId,
+                status: (record as any)?.status,
+                record,
+              },
+            });
+          } else if (resource === 'creativeWorkflow' && operation === 'list') {
+            const limit = this.getNodeParameter('cwListLimit', i) as number;
+            const offset = this.getNodeParameter('cwListOffset', i) as number;
+            const records = await client.listCreativeWorkflows({ limit, offset });
+
+            (records as any[]).forEach((record: any) => {
+              returnData.push({
+                json: {
+                  workflowId: record?.workflowId,
+                  status: record?.status,
+                  title: record?.title,
+                  createdAt: record?.createdAt ?? record?.createTime,
+                  updatedAt: record?.updatedAt ?? record?.updateTime,
+                  record,
+                },
+              });
+            });
+          } else if (resource === 'creativeWorkflow' && operation === 'events') {
+            const workflowId = (this.getNodeParameter('cwWorkflowId', i) as string).trim();
+            if (!workflowId) {
+              throw new Error('Workflow ID is required');
+            }
+            const events = await client.getCreativeWorkflowEvents(workflowId);
+            (events as any[]).forEach((event: any) => {
+              returnData.push({
+                json: {
+                  workflowId,
+                  ...event,
+                },
+              });
+            });
+          } else if (resource === 'creativeWorkflow' && operation === 'cancel') {
+            const workflowId = (this.getNodeParameter('cwWorkflowId', i) as string).trim();
+            if (!workflowId) {
+              throw new Error('Workflow ID is required');
+            }
+            const record = await client.cancelCreativeWorkflow(workflowId);
+            const cancelStatus = String((record as any)?.status ?? '');
+            returnData.push({
+              json: {
+                workflowId: (record as any)?.workflowId ?? workflowId,
+                status: (record as any)?.status,
+                // Derived from the returned record, not assumed. The server can
+                // return the workflow in any state (already-completed runs are a
+                // no-op cancel) so we report what the server actually says.
+                cancelled: cancelStatus === 'cancelled' || cancelStatus === 'canceled',
+                record,
               },
             });
           }
