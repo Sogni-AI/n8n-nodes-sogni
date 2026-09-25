@@ -114,22 +114,13 @@ async function testVideoGeneration() {
                name.includes('animation');
       });
 
-      if (videoModels.length > 0) {
-        videoModels.forEach(m => {
-          console.log(`   - ${m.id} (${m.workerCount || 0} workers)`);
-        });
+      videoModels.forEach(m => {
+        console.log(`   - ${m.id} (${m.workerCount || 0} workers)`);
+      });
 
-        // Try to use the first available video model
-        if (videoModels[0]) {
-          VIDEO_CONFIG.modelId = videoModels[0].id;
-          console.log(`\n🔄 Using alternative model: ${VIDEO_CONFIG.modelId}`);
-        } else {
-          throw new Error('No video models available');
-        }
-      } else {
-        console.log('   No video models found. Video generation might not be available yet.');
-        throw new Error('No video models available');
-      }
+      // No substitute model: "first video model" can be a third-party vendor
+      // model (wan3.0-video, seedance-*) that bills a real vendor render.
+      throw new Error(`Video model "${VIDEO_CONFIG.modelId}" not available`);
     } else {
       console.log(`✅ Video model available: ${videoModel.name || videoModel.id}`);
       console.log(`   Workers: ${videoModel.workerCount || 0}\n`);
