@@ -413,7 +413,7 @@ When a workflow completes, you'll receive:
   "modelId": "flux1-schnell-fp8",
   "prompt": "A beautiful sunset...",
   "imageUrls": [
-    "https://complete-images-production.s3-accelerate.amazonaws.com/..."
+    "https://<signed-storage-url>"
   ],
   "completed": true,
   "jobs": [

@@ -777,7 +777,7 @@ export class Sogni implements INodeType {
                 type: 'boolean',
                 default: true,
                 description:
-                  'Whether to download images as binary data (recommended to avoid 24h URL expiry)',
+                  'Whether to download images as binary data (recommended to avoid 48h URL expiry)',
               },
               {
                 displayName: 'Output Format',
@@ -1087,7 +1087,7 @@ export class Sogni implements INodeType {
                 type: 'boolean',
                 default: true,
                 description:
-                  'Whether to download images as binary data (recommended to avoid 24h URL expiry)',
+                  'Whether to download images as binary data (recommended to avoid 48h URL expiry)',
               },
               {
                 displayName: 'Output Format',
@@ -1908,7 +1908,7 @@ export class Sogni implements INodeType {
                 type: 'boolean',
                 default: true,
                 description:
-                  'Whether to download audio as binary data (recommended to avoid 24h URL expiry)',
+                  'Whether to download audio as binary data (recommended to avoid 48h URL expiry)',
               },
               {
                 displayName: 'Output Format',

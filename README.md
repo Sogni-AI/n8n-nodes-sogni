@@ -376,7 +376,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
   "modelId": "flux1-schnell-fp8",
   "prompt": "A beautiful sunset...",
   "imageUrls": [
-    "https://complete-images-production.s3-accelerate.amazonaws.com/..."
+    "https://<signed-storage-url>"
   ],
   "completed": true,
   "jobs": [
@@ -403,7 +403,7 @@ See the [examples](./examples/) directory for complete workflow JSON files:
   "modelId": "video-model-id",
   "prompt": "A cat playing...",
   "videoUrls": [
-    "https://complete-videos-production.s3-accelerate.amazonaws.com/..."
+    "https://<signed-storage-url>"
   ],
   "completed": true,
   "jobs": [
@@ -435,7 +435,7 @@ Binary data includes:
   "modelId": "qwen_image_edit_2511_fp8_lightning",
   "prompt": "Change the background to a sunset beach",
   "imageUrls": [
-    "https://complete-images-production.s3-accelerate.amazonaws.com/..."
+    "https://<signed-storage-url>"
   ],
   "completed": true,
   "contextImagesCount": 1,
@@ -502,7 +502,8 @@ Use "Get All Models" operation to see all available models.
 ### 5. Image Download
 
 - **Enable** `downloadImages` to prevent URL expiry
-- URLs expire after 24 hours
+- URLs expire after 48 hours, and Sogni keeps generated media for about two days
+- Treat URLs as opaque: use them exactly as returned (the storage host can change)
 - Binary data is permanent in n8n
 - Recommended for production workflows
 

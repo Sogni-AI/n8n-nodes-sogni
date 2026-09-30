@@ -65,7 +65,7 @@ When `enableControlNet` is true:
 - Parameters: strength (0-1), mode (balanced/prompt_priority/cn_priority), guidance start/end
 
 ### Image Output Handling
-- Downloads images by default to prevent 24-hour URL expiry
+- Downloads images by default because result URLs expire after 48 hours
 - Binary properties: `image` for first, `image_1`, `image_2` for additional
 - Fallback: Returns imageUrls if download fails
 
