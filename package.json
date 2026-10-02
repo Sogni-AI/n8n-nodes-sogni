@@ -43,7 +43,7 @@
     "lintfix": "eslint 'nodes/**/*.ts' 'credentials/**/*.ts' 'index.ts' --fix",
     "prepublishOnly": "npm run build && npm run lint",
     "test:validation": "npx ts-node test/node-validation.ts",
-    "test:unit": "npx ts-node test/video-model-utils.ts",
+    "test:unit": "npx ts-node test/video-model-utils.ts && npx ts-node test/creative-workflow-wait.ts",
     "test:video": "node test/test-video-simple.js",
     "test:video:minimal": "node test/test-video-minimal.js",
     "test:video:detailed": "npx ts-node test/test-video-generation.ts",

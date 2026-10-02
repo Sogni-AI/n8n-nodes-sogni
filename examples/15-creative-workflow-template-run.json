@@ -34,7 +34,6 @@
         "cwStartAdditionalFields": {
           "tokenType": "spark",
           "appSource": "n8n-nodes-sogni",
-          "pollIntervalMs": 3000,
           "pollTimeoutMs": 900000
         }
       },

@@ -239,12 +239,12 @@ Generate a 30-second music clip from a text prompt (optionally with lyrics) usin
 ### 15. Sogni Creative Workflow: Run Saved Template + Wait *(new in 1.7.0)*
 **File**: `15-creative-workflow-template-run.json`
 
-Kick off a hosted multi-step Sogni Creative Workflow from a saved template, then poll until terminal status.
+Kick off a hosted multi-step Sogni Creative Workflow from a saved template, then wait (following its event stream) until terminal status.
 
 **Features:**
 - New `Creative Workflow → Start` operation
 - Template mode with structured `Inputs JSON`
-- `Wait Until Terminal` toggle with configurable poll interval / timeout
+- `Wait Until Terminal` toggle with a configurable timeout
 - Output exposes `waited` / `timedOut` so you can branch on long runs
 
 **Use Case**: Storyboard → keyframes → video pipelines, agent-driven creative jobs, automated marketing assets

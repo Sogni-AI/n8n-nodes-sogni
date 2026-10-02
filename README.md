@@ -8,7 +8,7 @@ Generate AI images, videos, audio, LLM responses, and full hosted multi-step cre
 - **Video** — LTX-2.3, WAN 2.2, and Seedance families with cost estimation, ControlNet, image-to-video, sound-to-video, animate, and v2v workflows.
 - **Audio** — generate music and instrumental audio (ACE-Step) with optional lyrics, BPM/time signature/key, composer mode, and cost estimation. *(new in 1.7.0)*
 - **LLM** — Sogni Intelligence chat models with optional tool calling and vision input, a one-click toggle to expose Sogni's hosted creative tool manifest to the model, and pre-flight cost estimates. *(new in 1.7.0)*
-- **Creative Workflow** — start, list, fetch events for, and cancel hosted multi-step Sogni workflows (storyboard → keyframes → video, etc.) with optional poll-until-terminal mode. *(new in 1.7.0)*
+- **Creative Workflow** — start, list, fetch events for, and cancel hosted multi-step Sogni workflows (storyboard → keyframes → video, etc.) with an optional wait-until-terminal mode that follows the workflow's event stream. *(new in 1.7.0)*
 
 This node uses your Sogni account credentials. [Sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project uses [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
@@ -38,7 +38,7 @@ This node uses your Sogni account credentials. [Sign up for free](https://app.so
 - **Get All**: List all available Sogni LLM/chat models.
 
 #### Creative Workflow Resource *(new in 1.7.0)*
-- **Start**: Run a hosted multi-step workflow from a saved template (`Template ID` + `Inputs JSON`) or an inline plan (`Inline Workflow JSON` with `steps[]`). Optional *Wait Until Terminal* polling.
+- **Start**: Run a hosted multi-step workflow from a saved template (`Template ID` + `Inputs JSON`) or an inline plan (`Inline Workflow JSON` with `steps[]`). Optional *Wait Until Terminal*, which follows the workflow's event stream instead of polling.
 - **Get**: Fetch a workflow record by ID.
 - **List**: List recent workflows (limit/offset).
 - **Get Events**: Stream the event history for a workflow.

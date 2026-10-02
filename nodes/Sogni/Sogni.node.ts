@@ -20,6 +20,7 @@ import {
   isVideoModelCandidate,
   normalizeRequestedVideoFrames,
 } from './videoModelUtils';
+import { waitForCreativeWorkflow } from './creativeWorkflowWait';
 
 /**
  * Enable optional AppId debug logging by setting:
@@ -2036,7 +2037,7 @@ export class Sogni implements INodeType {
           show: { resource: ['creativeWorkflow'], operation: ['start'] },
         },
         description:
-          'Whether to poll the workflow until it reaches a terminal status (completed, partial_failure, failed, cancelled, waiting_for_user). Off = return the queued record immediately.',
+          'Whether to wait, following the workflow\'s event stream, until it reaches a terminal status (completed, partial_failure, failed, cancelled, waiting_for_user). Off = return the queued record immediately.',
       },
       {
         displayName: 'Start Additional Fields',
@@ -2101,15 +2102,7 @@ export class Sogni implements INodeType {
             placeholder: '[{"id":"img1","url":"https://example.com/hero.png"}]',
           },
           {
-            displayName: 'Poll Interval (ms)',
-            name: 'pollIntervalMs',
-            type: 'number',
-            default: 2000,
-            description: 'How often to poll when "Wait Until Terminal" is on',
-            typeOptions: { minValue: 250, maxValue: 60000 },
-          },
-          {
-            displayName: 'Poll Timeout (ms)',
+            displayName: 'Wait Timeout (ms)',
             name: 'pollTimeoutMs',
             type: 'number',
             default: 600000,
@@ -3898,7 +3891,6 @@ export class Sogni implements INodeType {
               typeof additional.confirmCost === 'boolean' ? additional.confirmCost : undefined;
             const mediaReferencesJson =
               String(additional.mediaReferencesJson ?? '').trim() || undefined;
-            const pollIntervalMs = (additional.pollIntervalMs as number | undefined) ?? 2000;
             const pollTimeoutMs = (additional.pollTimeoutMs as number | undefined) ?? 600000;
 
             const startParams: any = {
@@ -3953,44 +3945,16 @@ export class Sogni implements INodeType {
             const record = await client.startCreativeWorkflow(startParams);
             const workflowId = (record as any)?.workflowId as string | undefined;
 
-            // Terminal statuses we will not poll past. waiting_for_user is included
-            // because there's no Resume operation on this node and continuing to
-            // poll would block until the timeout.
-            const TERMINAL_STATUSES = new Set([
-              'completed',
-              'partial_failure',
-              'failed',
-              'cancelled',
-              'canceled',
-              'waiting_for_user',
-            ]);
-
             let finalRecord: any = record;
             let polled = false;
             let timedOut = false;
 
             if (wait && workflowId) {
               polled = true;
-              const startedAt = Date.now();
-              const interval = Math.max(250, pollIntervalMs);
-              const timeout = Math.max(1000, pollTimeoutMs);
-
-              let done = false;
-              while (!done) {
-                const current: any = await client.getCreativeWorkflow(workflowId);
-                finalRecord = current;
-                const status = String(current?.status ?? '');
-                if (status && TERMINAL_STATUSES.has(status)) {
-                  done = true;
-                  break;
-                }
-                if (Date.now() - startedAt > timeout) {
-                  timedOut = true;
-                  done = true;
-                  break;
-                }
-                await new Promise((resolve) => setTimeout(resolve, interval));
-              }
+              // Follows the workflow's event stream; never polls it (see creativeWorkflowWait.ts).
+              ({ record: finalRecord, timedOut } = await waitForCreativeWorkflow(client, workflowId, {
+                timeoutMs: pollTimeoutMs,
+              }));
             }
 
             returnData.push({
