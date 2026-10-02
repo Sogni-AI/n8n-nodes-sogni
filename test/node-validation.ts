@@ -422,6 +422,11 @@ async function runTests() {
         `audioModelId should use getAudioModelOptions loadOptions, got ${loadOptionsMethod}`
       );
     }
+    if (modelIdProp.default !== 'minimax_music3') {
+      throw new Error(
+        `audioModelId should default to MiniMax Music 3 (minimax_music3), got ${String(modelIdProp.default)}`
+      );
+    }
   })();
 
   // Test 39: Audio positive prompt

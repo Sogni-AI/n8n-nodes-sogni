@@ -49,6 +49,8 @@ function debugLogAppId(message: string): void {
 const CHAT_MODEL_LOAD_OPTIONS_TIMEOUT_MS = 30000;
 const CHAT_MODEL_EXECUTION_TIMEOUT_MS = 45000;
 const SOGNI_N8N_APP_SOURCE = 'n8n-nodes-sogni';
+// Default music model for the Audio resource. ACE-Step stays selectable by name.
+const DEFAULT_AUDIO_MODEL_ID = 'minimax_music3';
 
 type HostedToolManifestEntry = {
   function?: {
@@ -457,7 +459,7 @@ export class Sogni implements INodeType {
           {
             name: 'Generate',
             value: 'generate',
-            description: 'Generate AI music or audio (e.g., ACE-Step)',
+            description: 'Generate AI music or audio (default: MiniMax Music 3; ACE-Step also available)',
             action: 'Generate Sogni audio',
           },
           {
@@ -1605,7 +1607,7 @@ export class Sogni implements INodeType {
         displayName: 'Model Search',
         name: 'audioModelSearch',
         type: 'string',
-        placeholder: 'e.g., ace-step, music',
+        placeholder: 'e.g., music3, ace-step',
         default: '',
         description:
           'Type to filter audio models by name/tag. The dropdown below refreshes when you edit this field.',
@@ -1625,9 +1627,9 @@ export class Sogni implements INodeType {
           loadOptionsMethod: 'getAudioModelOptions',
           loadOptionsDependsOn: ['audioModelSearch'],
         },
-        default: '',
+        default: 'minimax_music3',
         description:
-          'Choose an audio model from the list (recommended), or paste a known model ID into this field.',
+          'Choose an audio model from the list, or paste a known model ID into this field. Default: MiniMax Music 3 (minimax_music3). Pick an ACE-Step model (e.g. ace_step_1.5_turbo) only for quick, cheap drafts.',
       },
       {
         displayName: 'Positive Prompt',
@@ -1674,7 +1676,8 @@ export class Sogni implements INodeType {
         displayOptions: {
           show: { resource: ['audio'], operation: ['generate'] },
         },
-        description: 'Length of the generated audio in seconds (10–600).',
+        description:
+          'Length of the generated audio in seconds. MiniMax Music 3 (the default model) accepts 10–300 and treats it as a ceiling, so a song may end early at a natural resolution. ACE-Step accepts 10–600.',
         typeOptions: { minValue: 10, maxValue: 600 },
       },
 
@@ -1687,7 +1690,8 @@ export class Sogni implements INodeType {
         displayOptions: {
           show: { resource: ['audio'], operation: ['estimateCost'] },
         },
-        description: 'Estimated audio duration in seconds (10–600)',
+        description:
+          'Estimated audio duration in seconds (MiniMax Music 3: 10–300; ACE-Step: 10–600)',
         typeOptions: { minValue: 10, maxValue: 600 },
       },
       {
@@ -1749,8 +1753,8 @@ export class Sogni implements INodeType {
                 default: '',
                 typeOptions: { rows: 4 },
                 description:
-                  'Song lyrics. Leave empty for instrumental generation.',
-                placeholder: '[Verse 1]\nWalking through the neon glow…',
+                  'Song lyrics. For MiniMax Music 3, put plain section tags on their own lines ([Intro], [Verse], [Chorus], [Bridge], [Outro]) with nothing else inside the brackets. For a Music 3 instrumental, pass only a skeleton of tags, one per line (e.g. [Intro] [Verse] [Chorus] [Verse] [Chorus] [Bridge] [Outro]); without it the piece may end early. ACE-Step: leave empty for an instrumental.',
+                placeholder: '[Verse]\nWalking through the neon glow…',
               },
               {
                 displayName: 'Language',
@@ -1758,7 +1762,7 @@ export class Sogni implements INodeType {
                 type: 'string',
                 default: '',
                 description:
-                  'Lyrics language code (e.g., en, es, ja). Leave empty for server default.',
+                  'ACE-Step only: lyrics language code (e.g., en, es, ja). Leave empty for server default. MiniMax Music 3 has no language setting; name the language in the prompt.',
                 placeholder: 'en',
               },
               {
@@ -1766,7 +1770,8 @@ export class Sogni implements INodeType {
                 name: 'bpm',
                 type: 'number',
                 default: undefined as unknown as number,
-                description: 'Beats per minute (30–300). Leave empty for server default (120).',
+                description:
+                  'ACE-Step only: beats per minute (30–300). Leave empty for server default (120). MiniMax Music 3 has no BPM setting; put the tempo in the prompt (e.g. "120 BPM").',
                 typeOptions: { minValue: 30, maxValue: 300 },
               },
               {
@@ -1781,14 +1786,16 @@ export class Sogni implements INodeType {
                   { name: '4/4', value: '4' },
                   { name: '6/8', value: '6' },
                 ],
-                description: 'Time signature for the composition',
+                description:
+                  'ACE-Step only: time signature for the composition. MiniMax Music 3 has no time-signature setting; describe the meter in the prompt.',
               },
               {
                 displayName: 'Key / Scale',
                 name: 'keyscale',
                 type: 'string',
                 default: '',
-                description: 'Key/scale (e.g., "C major", "A minor"). Empty uses server default.',
+                description:
+                  'ACE-Step only: key/scale (e.g., "C major", "A minor"). Empty uses server default. MiniMax Music 3 has no key setting; put the key in the prompt.',
                 placeholder: 'C major',
               },
               {
@@ -1797,7 +1804,7 @@ export class Sogni implements INodeType {
                 type: 'boolean',
                 default: true,
                 description:
-                  'Whether to enable AI composer mode for higher quality. Disable for faster runs or when using reference audio.',
+                  'ACE-Step only: whether to enable AI composer mode for higher quality. Disable for faster runs or when using reference audio. MiniMax Music 3 does not use it.',
               },
               {
                 displayName: 'Prompt Strength',
@@ -1805,7 +1812,7 @@ export class Sogni implements INodeType {
                 type: 'number',
                 default: undefined as unknown as number,
                 description:
-                  'How closely the AI composer follows your prompt (0–10). Empty uses server default (2.0).',
+                  'How closely the AI composer follows your prompt (0–10). Empty uses the model default (MiniMax Music 3: 1.7; ACE-Step: 2.0).',
                 typeOptions: { minValue: 0, maxValue: 10, numberPrecision: 2 },
               },
               {
@@ -1814,7 +1821,7 @@ export class Sogni implements INodeType {
                 type: 'number',
                 default: undefined as unknown as number,
                 description:
-                  'Composition variation / temperature (0–2). Higher = more creative. Empty uses server default (0.85).',
+                  'ACE-Step only: composition variation / temperature (0–2). Higher = more creative. Empty uses server default (0.85). MiniMax Music 3 does not use it.',
                 typeOptions: { minValue: 0, maxValue: 2, numberPrecision: 2 },
               },
               {
@@ -1823,7 +1830,7 @@ export class Sogni implements INodeType {
                 type: 'number',
                 default: undefined as unknown as number,
                 description:
-                  'ModelSamplingAuraFlow shift (1–6). Empty uses server default (3 for turbo).',
+                  'ACE-Step only: ModelSamplingAuraFlow shift (1–6). Empty uses server default (3 for turbo). MiniMax Music 3 has no shift.',
                 typeOptions: { minValue: 1, maxValue: 6, numberPrecision: 1 },
               },
               {
@@ -2537,16 +2544,18 @@ export class Sogni implements INodeType {
             );
           });
 
-          const options: INodePropertyOptions[] = audioModels.map((model: any) => {
+          // MiniMax Music 3 is the default music model: list it first and label it so,
+          // whatever the worker counts say. ACE-Step stays available as a named choice.
+          const sortedAudioModels = [...audioModels].sort(
+            (a: any, b: any) =>
+              Number(b?.id === DEFAULT_AUDIO_MODEL_ID) - Number(a?.id === DEFAULT_AUDIO_MODEL_ID),
+          );
+          const options: INodePropertyOptions[] = sortedAudioModels.map((model: any) => {
             const workers = model.workerCount ?? model.workers ?? 0;
-            const healthy =
-              model.health === 'healthy' ||
-              model.status === 'healthy' ||
-              (typeof model.healthy === 'boolean' ? model.healthy : workers > 0);
-            const recommended = healthy && workers >= 5;
             const badge = workers ? ` • ${workers} workers` : '';
+            const isDefault = model.id === DEFAULT_AUDIO_MODEL_ID;
             return {
-              name: `${model.name || model.id}${badge}${recommended ? ' (recommended)' : ''}`,
+              name: `${model.name || model.id}${badge}${isDefault ? ' (default)' : ''}`,
               value: model.id,
               description: model.description || undefined,
             };

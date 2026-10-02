@@ -6,7 +6,7 @@ Generate AI images, videos, audio, LLM responses, and full hosted multi-step cre
 
 - **Image** — text-to-image with full ControlNet (15 types), Qwen Image Edit with multi-reference context images, and a dynamic server-validated size-preset dropdown.
 - **Video** — LTX-2.3, WAN 2.2, and Seedance families with cost estimation, ControlNet, image-to-video, sound-to-video, animate, and v2v workflows.
-- **Audio** — generate music and instrumental audio (ACE-Step) with optional lyrics, BPM/time signature/key, composer mode, and cost estimation. *(new in 1.7.0)*
+- **Audio** — generate music and instrumental audio with optional lyrics and cost estimation. MiniMax Music 3 is the default model; ACE-Step is available by name for quick drafts and adds BPM/time signature/key and composer mode. *(new in 1.7.0)*
 - **LLM** — Sogni Intelligence chat models with optional tool calling and vision input, a one-click toggle to expose Sogni's hosted creative tool manifest to the model, and pre-flight cost estimates. *(new in 1.7.0)*
 - **Creative Workflow** — start, list, fetch events for, and cancel hosted multi-step Sogni workflows (storyboard → keyframes → video, etc.) with an optional wait-until-terminal mode that follows the workflow's event stream. *(new in 1.7.0)*
 
@@ -29,7 +29,7 @@ This node uses your Sogni account credentials. [Sign up for free](https://app.so
 - **Estimate Cost**: Estimate token/USD cost before generation.
 
 #### Audio Resource *(new in 1.7.0)*
-- **Generate**: Create music or instrumental audio (ACE-Step) with optional lyrics, BPM, time signature, key/scale, composer mode, and creativity controls.
+- **Generate**: Create music or instrumental audio with optional lyrics. Defaults to MiniMax Music 3 (`minimax_music3`, 10–300 s, duration is a ceiling; put tempo and key in the prompt). Pick an ACE-Step model by name for quick drafts with BPM, time signature, key/scale, composer mode, and creativity controls.
 - **Estimate Cost**: Estimate token/USD cost for an audio request.
 
 #### LLM Resource

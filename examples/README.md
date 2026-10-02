@@ -221,15 +221,15 @@ Drag an image into an n8n form and have Sogni LLM describe it on n8n's built-in 
 
 ---
 
-### 14. Sogni Audio: ACE-Step Music Generation *(new in 1.7.0)*
+### 14. Sogni Audio: MiniMax Music 3 Music Generation *(new in 1.7.0)*
 **File**: `14-audio-music-generation.json`
 
-Generate a 30-second music clip from a text prompt (optionally with lyrics) using the new Audio resource.
+Generate a song of up to 60 seconds from a text prompt (optionally with lyrics) using the new Audio resource and the default MiniMax Music 3 model.
 
 **Features:**
 - New `Audio → Generate` operation
-- ACE-Step model picker (auto-filtered to audio-capable models)
-- BPM / time signature / composer-mode controls
+- Audio model picker (auto-filtered to audio-capable models; MiniMax Music 3 is the default, ACE-Step is available for quick drafts)
+- Tempo and key written into the prompt; a section-tag skeleton keeps an instrumental from ending early
 - Auto-downloads each track as a binary property (`audio`, `audio_1`, …)
 
 **Use Case**: Soundtrack generation, jingles, podcast intros, batch music production
