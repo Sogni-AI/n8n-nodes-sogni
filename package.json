@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-sogni",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "n8n community node for Sogni AI image, video, audio, LLM, and hosted creative-workflow generation",
   "keywords": [
     "n8n-community-node-package",
