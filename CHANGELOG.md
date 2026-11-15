@@ -6,6 +6,16 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 project does not strictly follow Semantic Versioning yet (we land features under minor
 bumps and fixes under patch).
 
+## [Unreleased]
+
+### Added
+
+- **API key sign-in** — the Sogni AI API credential has a new **Authentication** choice:
+  *API Key* or *Username and Password*. API keys work for accounts with two-factor
+  authentication, which cannot sign in with username and password. Credentials saved before
+  this release have no Authentication value and keep signing in with username and password
+  exactly as before.
+
 ## [1.7.0] — 2026-05-20
 
 ### Added

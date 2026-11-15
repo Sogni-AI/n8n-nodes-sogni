@@ -34,7 +34,7 @@ npm run prepublishOnly  # Validates build and lint before publish
 
 ### Core Structure
 - **Main Node**: `nodes/Sogni/Sogni.node.ts` - Implements all Sogni API operations (image generation, model listing, account balance)
-- **Credentials**: `credentials/SogniApi.credentials.ts` - Defines authentication (username, password, optional appId)
+- **Credentials**: `credentials/SogniApi.credentials.ts` - Defines authentication: `authType` (`apiKey` | `usernamePassword`), API key or username/password, optional appId. `authType` MUST default to `usernamePassword`: credentials saved before it existed have no value, n8n fills in the default, and they must keep logging in with username/password. Accounts with 2FA can only use an API key. `nodes/Sogni/sogniCredentialAuth.ts` maps the credential to the wrapper config; `test/credential-auth.ts` covers both paths.
 - **Client Integration**: Uses the `@sogni-ai/sogni-intelligence-client` package (formerly `sogni-client-wrapper`) for WebSocket-based API communication
 - **Output**: Compiled to `dist/` directory with TypeScript transpilation
 

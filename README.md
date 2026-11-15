@@ -10,7 +10,7 @@ Generate AI images, videos, audio, LLM responses, and full hosted multi-step cre
 - **LLM** — Sogni Intelligence chat models with optional tool calling and vision input, a one-click toggle to expose Sogni's hosted creative tool manifest to the model, and pre-flight cost estimates. *(new in 1.7.0)*
 - **Creative Workflow** — start, list, fetch events for, and cancel hosted multi-step Sogni workflows (storyboard → keyframes → video, etc.) with an optional wait-until-terminal mode that follows the workflow's event stream. *(new in 1.7.0)*
 
-This node uses your Sogni account credentials. [Sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project uses [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
+This node signs in with a Sogni API key or your Sogni username and password. [Sign up for free](https://app.sogni.ai/create?code=n8n) to get 50 free Render credits per day. Under the hood, the project uses [`@sogni-ai/sogni-intelligence-client`](https://www.npmjs.com/package/@sogni-ai/sogni-intelligence-client), which is built on top of the official [`@sogni-ai/sogni-client`](https://www.npmjs.com/package/@sogni-ai/sogni-client) SDK.
 
 <img src="https://raw.githubusercontent.com/Sogni-Ai/n8n-nodes-sogni/main/img/sogni-n8n-example-workflow.png" alt="Example n8n workflow using the Sogni node" width="1152">
 
@@ -82,10 +82,18 @@ npm install n8n-nodes-sogni
 1. In n8n, go to **Credentials**
 2. Click **Add Credential**
 3. Search for "Sogni AI"
-4. Enter your credentials:
-   - **Username**: Your Sogni account username
-   - **Password**: Your Sogni account password
-   - **App ID**: (Optional) Leave empty for auto-generation
+4. Choose **Authentication**:
+   - **API Key**: paste your Sogni API key. To create one, log in to
+     [dashboard.sogni.ai](https://dashboard.sogni.ai), open the username menu in the top-right
+     corner and create a key. Use this if your account has two-factor authentication turned on.
+   - **Username and Password**: enter your Sogni account username and password. This does not
+     work for accounts with two-factor authentication turned on.
+5. **App ID**: (Optional) Leave empty for auto-generation
+
+Credentials you saved before the Authentication option existed keep using username and
+password; nothing changes for them. If you turn on two-factor authentication for your Sogni
+account, open the credential, switch **Authentication** to **API Key** and paste a key. Your
+workflows keep using the same credential.
 
 ### 2. Add Node to Workflow
 
@@ -535,6 +543,12 @@ Use "Get All Models" operation to see all available models.
 
 ## Troubleshooting
 
+### Sign-in fails after turning on two-factor authentication
+
+**Solution**: Username and password sign-in does not work once two-factor authentication is on.
+Edit the Sogni AI API credential, set **Authentication** to **API Key** and paste an API key
+from [dashboard.sogni.ai](https://dashboard.sogni.ai).
+
 ### "Insufficient funds" Error
 
 **Solution**: Add more Spark or SOGNI tokens to your account
@@ -634,8 +648,7 @@ This node uses the `@sogni-ai/sogni-intelligence-client` library. For standalone
 import { SogniClientWrapper } from '@sogni-ai/sogni-intelligence-client';
 
 const client = new SogniClientWrapper({
-  username: 'your-username',
-  password: 'your-password',
+  apiKey: 'your-api-key', // or: username: 'your-username', password: 'your-password'
   appSource: 'n8n-nodes-sogni',
   autoConnect: true,
 });

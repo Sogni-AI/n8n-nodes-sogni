@@ -89,6 +89,17 @@ This will help identify if the issue is with:
 
 ## Common Issues
 
+### Sign-in Fails With Two-Factor Authentication
+
+**Symptoms:**
+- The node worked until you turned on two-factor authentication for your Sogni account
+- Every Sogni operation now fails to connect or authenticate
+
+**Solutions:**
+- Username and password sign-in does not work for accounts with two-factor authentication
+- Edit the Sogni AI API credential, set **Authentication** to **API Key** and paste an API key
+- Create the key at https://dashboard.sogni.ai from the username menu in the top-right corner
+
 ### WebSocket Connection Blocked
 
 **Symptoms:**

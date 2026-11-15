@@ -21,6 +21,7 @@ import {
   normalizeRequestedVideoFrames,
 } from './videoModelUtils';
 import { waitForCreativeWorkflow } from './creativeWorkflowWait';
+import { SogniCredentialData, buildSogniCredentialAuthConfig } from './sogniCredentialAuth';
 
 /**
  * Enable optional AppId debug logging by setting:
@@ -202,12 +203,11 @@ function generateUniqueAppId(prefix: string): string {
 }
 
 function createSogniClient(
-  credentials: { username?: unknown; password?: unknown },
+  credentials: SogniCredentialData,
   appId: string,
 ): SogniClientWrapper {
   return new SogniClientWrapper({
-    username: credentials.username as string,
-    password: credentials.password as string,
+    ...buildSogniCredentialAuthConfig(credentials),
     appId,
     appSource: SOGNI_N8N_APP_SOURCE,
     autoConnect: true,
