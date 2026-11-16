@@ -52,7 +52,7 @@ This node signs in with a Sogni API key or your Sogni username and password. [Si
 #### Account Resource
 - **Get Balance**: Check SOGNI and Spark token balance.
 
-See [CHANGELOG.md](./CHANGELOG.md) for the full 1.7.0 release notes.
+See [CHANGELOG.md](./CHANGELOG.md) for the release notes.
 
 ---
 

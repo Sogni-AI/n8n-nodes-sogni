@@ -6,7 +6,7 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) a
 project does not strictly follow Semantic Versioning yet (we land features under minor
 bumps and fixes under patch).
 
-## [Unreleased]
+## [1.9.0] — 2026-11-16
 
 ### Added
 
@@ -15,6 +15,19 @@ bumps and fixes under patch).
   authentication, which cannot sign in with username and password. Credentials saved before
   this release have no Authentication value and keep signing in with username and password
   exactly as before.
+
+### Changed
+
+These changes were tagged as 1.7.1 and 1.8.0 but never published to npm, so they reach npm
+for the first time in this release.
+
+- **Audio** — new Audio nodes default to MiniMax Music 3 (`minimax_music3`). ACE-Step stays
+  selectable by name. Saved nodes keep the model they were saved with.
+- **Creative Workflow → Wait Until Terminal** follows the workflow's event stream instead of
+  re-reading it every few seconds. The Poll Interval option is gone; Poll Timeout is now
+  labelled Wait Timeout and keeps its value.
+- Updated `@sogni-ai/sogni-intelligence-client` and its Sogni SDK, and overrode a vulnerable
+  `form-data` in the n8n workflow dependency tree.
 
 ## [1.7.0] — 2026-05-20
 
