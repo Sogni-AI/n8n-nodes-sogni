@@ -1,3 +1,8 @@
+import {
+  calculateVideoFrames,
+  isMinimaxH3PrismModelId,
+} from '@sogni-ai/sogni-intelligence-client/media';
+
 export interface VideoModelLike {
   id?: string;
   name?: string;
@@ -26,7 +31,7 @@ export function isVideoModelCandidate(model: VideoModelLike): boolean {
   const id = normalizeModelText(model.id);
   const haystack = `${id} ${normalizeModelText(model.name)} ${normalizeModelText(model.description)}`;
 
-  if (isWanVideoModelId(id) || isLtxVideoModelId(id)) {
+  if (isWanVideoModelId(id) || isLtxVideoModelId(id) || isMinimaxH3PrismModelId(id)) {
     return true;
   }
 
@@ -34,6 +39,9 @@ export function isVideoModelCandidate(model: VideoModelLike): boolean {
 }
 
 export function normalizeRequestedVideoFrames(modelId: string, requestedFrames: number): number {
+  if (Number.isFinite(requestedFrames) && isMinimaxH3PrismModelId(modelId)) {
+    return calculateVideoFrames(requestedFrames / 24, 'minimax-h3-r2v');
+  }
   if (!Number.isFinite(requestedFrames) || !isLtxVideoModelId(modelId)) {
     return requestedFrames;
   }

@@ -78,6 +78,15 @@ test('Should leave non-LTX frame counts unchanged', () => {
   }
 });
 
+test('Prism IDs are discoverable and use the MiniMax frame grid', () => {
+  for (const id of ['minimax-h3-prism-int8_r2v', 'minimax-h3-prism-int8_r2v_2stage']) {
+    if (!isVideoModelCandidate({ id })) throw new Error(`Missing video model ${id}`);
+    if (normalizeRequestedVideoFrames(id, 30) !== 124 || normalizeRequestedVideoFrames(id, 192) !== 192) {
+      throw new Error(`Incorrect frame normalization for ${id}`);
+    }
+  }
+});
+
 console.log('\n' + '='.repeat(50));
 console.log(`✅ Tests passed: ${testsPassed}`);
 console.log(`❌ Tests failed: ${testsFailed}`);

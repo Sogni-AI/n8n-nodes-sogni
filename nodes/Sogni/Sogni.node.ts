@@ -20,6 +20,7 @@ import {
   isVideoModelCandidate,
   normalizeRequestedVideoFrames,
 } from './videoModelUtils';
+import { isMinimaxH3PrismModelId } from '@sogni-ai/sogni-intelligence-client/media';
 import { waitForCreativeWorkflow } from './creativeWorkflowWait';
 import { SogniCredentialData, buildSogniCredentialAuthConfig } from './sogniCredentialAuth';
 
@@ -1315,8 +1316,8 @@ export class Sogni implements INodeType {
                 type: 'number',
                 default: 30,
                 description:
-                  'Number of frames in the video (10-120). LTX-2 models work best with frame counts of 8n+1.',
-                typeOptions: { minValue: 10, maxValue: 120 },
+                  'Number of frames in the video. LTX-2 uses 8n+1. MiniMax H3 Prism uses 124+17n, up to 362.',
+                typeOptions: { minValue: 10, maxValue: 362 },
               },
               {
                 displayName: 'Duration (seconds)',
@@ -1551,16 +1552,16 @@ export class Sogni implements INodeType {
                 name: 'width',
                 type: 'number',
                 default: 512,
-                description: 'Video width in pixels (256-1024)',
-                typeOptions: { minValue: 256, maxValue: 1024 },
+                description: 'Video canvas width in pixels. For two-stage models enter half the delivered width',
+                typeOptions: { minValue: 256, maxValue: 1344 },
               },
               {
                 displayName: 'Height',
                 name: 'height',
                 type: 'number',
                 default: 512,
-                description: 'Video height in pixels (256-1024)',
-                typeOptions: { minValue: 256, maxValue: 1024 },
+                description: 'Video canvas height in pixels. For two-stage models enter half the delivered height',
+                typeOptions: { minValue: 256, maxValue: 1344 },
               },
             ],
           },
@@ -1594,6 +1595,13 @@ export class Sogni implements INodeType {
                 default: true,
                 description:
                   'Automatically normalize and resize reference images for video-compatible dimensions',
+              },
+              {
+                displayName: 'Disable Sensitive Content Filter',
+                name: 'disableNSFWFilter',
+                type: 'boolean',
+                default: false,
+                description: 'Whether to disable the Sensitive Content Filter for a MiniMax H3 Prism request',
               },
             ],
           },
@@ -3152,6 +3160,11 @@ export class Sogni implements INodeType {
             const videoWorkflow = (videoAdditional.workflowControls as any) || {};
             const videoOutput = (videoAdditional.output as any) || {};
             const videoAdvanced = (videoAdditional.advanced as any) || {};
+            const prism = isMinimaxH3PrismModelId(videoModelId);
+            const disableNSFWFilter = prism && videoAdvanced.disableNSFWFilter === true;
+            if (prism && !disableNSFWFilter) {
+              throw new NodeOperationError(this.getNode(), 'MiniMax H3 Prism requires the Sensitive Content Filter to be off.', { itemIndex: i });
+            }
 
             // Extract video parameters
             const negativePrompt = videoSettings.negativePrompt ?? '';
@@ -3159,15 +3172,18 @@ export class Sogni implements INodeType {
             const numberOfMedia = videoSettings.numberOfMedia ?? 1;
             const requestedFrames = videoSettings.frames ?? 30;
             const duration = videoSettings.duration;
-            const fps = videoSettings.fps ?? 30;
-            const steps = videoSettings.steps ?? 20;
-            const guidance = videoSettings.guidance ?? 7.5;
+            const fps = prism ? 24 : (videoSettings.fps ?? 30);
+            const steps = prism ? 8 : (videoSettings.steps ?? 20);
+            const guidance = prism ? 1 : (videoSettings.guidance ?? 7.5);
             const shift = videoSettings.shift;
             const teacacheThreshold = videoSettings.teacacheThreshold;
             const sampler = videoSettings.sampler;
             const scheduler = videoSettings.scheduler;
             const seed = videoSettings.seed;
-            const frames = normalizeRequestedVideoFrames(videoModelId, requestedFrames);
+            const frames = normalizeRequestedVideoFrames(
+              videoModelId,
+              prism && duration != null ? duration * fps : requestedFrames,
+            );
 
             const downloadVideos = videoOutput.downloadVideos ?? true;
             const outputFormat = videoOutput.outputFormat ?? 'mp4';
@@ -3308,6 +3324,7 @@ export class Sogni implements INodeType {
               lastFrameStrength,
               sam2Coordinates,
               autoResizeVideoAssets,
+              ...(disableNSFWFilter ? { disableNSFWFilter } : {}),
               waitForCompletion: true,
               timeout: resolvedTimeoutMs,
             };
@@ -3457,13 +3474,14 @@ export class Sogni implements INodeType {
               | undefined;
             const numberOfMedia = this.getNodeParameter('videoEstimateNumberOfMedia', i) as number;
             const tokenType = this.getNodeParameter('videoEstimateTokenType', i) as 'spark' | 'sogni';
+            const prism = isMinimaxH3PrismModelId(modelId);
 
             const estimateParams: any = {
               modelId,
               width,
               height,
-              fps,
-              steps,
+              fps: prism ? 24 : fps,
+              steps: prism ? 8 : steps,
               duration,
               numberOfMedia,
               tokenType,
@@ -3471,6 +3489,8 @@ export class Sogni implements INodeType {
 
             if (typeof framesInput === 'number' && !Number.isNaN(framesInput) && framesInput > 0) {
               estimateParams.frames = normalizeRequestedVideoFrames(modelId, framesInput);
+            } else if (prism) {
+              estimateParams.frames = normalizeRequestedVideoFrames(modelId, duration * 24);
             }
 
             const estimate = await client.estimateVideoCost(estimateParams);

@@ -274,6 +274,12 @@ See [ControlNet Guide](./CONTROLNET_GUIDE.md) for detailed usage instructions.
 
 ### Video Generation Parameters
 
+Select MiniMax H3 Prism or Prism Two-Stage in the model field for Reference to Video.
+In **Workflow Inputs**, supply at least one reference image or video binary property.
+In **Advanced**, explicitly enable **Disable Sensitive Content Filter** for the request.
+Prism uses 24 fps, 8 steps and guidance 1. For the two-stage model, enter the input
+canvas in **Output**: 960 × 544 delivers 1920 × 1088 and 1344 × 768 delivers 2688 × 1536.
+
 #### Required Parameters
 | Parameter | Type | Description |
 |-----------|------|-------------|
